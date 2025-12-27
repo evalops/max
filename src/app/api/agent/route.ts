@@ -4,6 +4,7 @@ import { type NextRequest } from "next/server";
 export interface AgentRequest {
   prompt: string;
   apiKey: string;
+  githubToken?: string;
   model?: string;
   maxTurns?: number;
   workingDirectory?: string;
@@ -27,7 +28,7 @@ export interface AgentEvent {
 // POST handler for starting/continuing an agent session
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as AgentRequest;
-  const { prompt, apiKey, model, maxTurns, workingDirectory, sessionId } = body;
+  const { prompt, apiKey, githubToken, model, maxTurns, workingDirectory, sessionId } = body;
 
   if (!apiKey) {
     return Response.json({ error: "API key is required" }, { status: 400 });
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
       try {
         // Dynamic import to avoid bundling issues
         const { query } = await import("@anthropic-ai/claude-code");
+        const { createGitHubMcpServer } = await import("@/lib/github-mcp");
         type Options = Parameters<typeof query>[0]["options"];
 
         // Send init event
@@ -79,6 +81,14 @@ export async function POST(request: NextRequest) {
           model: model || "claude-sonnet-4-20250514",
           permissionMode: "acceptEdits",
         };
+
+        // Add GitHub MCP server if token is provided
+        if (githubToken) {
+          const githubMcpServer = createGitHubMcpServer(githubToken, agentOptions.cwd);
+          agentOptions.mcpServers = {
+            github: githubMcpServer,
+          };
+        }
 
         // Resume session if provided
         if (sessionId) {

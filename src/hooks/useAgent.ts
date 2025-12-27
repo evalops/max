@@ -16,6 +16,16 @@ const toolToActivityType: Record<string, ActivityType> = {
   Task: "thinking",
   WebSearch: "github",
   WebFetch: "github",
+  // GitHub MCP tools
+  github_search_code: "github",
+  github_read_file: "file_read",
+  github_list_files: "file_read",
+  github_list_issues: "github",
+  github_get_issue: "github",
+  github_list_prs: "github",
+  github_get_pr: "github",
+  github_clone_repo: "command",
+  github_repo_info: "github",
 };
 
 // Infer artifact kind from file extension
@@ -199,6 +209,7 @@ export function useAgent() {
         const request: AgentRequest = {
           prompt,
           apiKey: settings.apiKey,
+          githubToken: settings.githubToken || undefined,
           model: settings.model,
           maxTurns: settings.maxTurns,
           workingDirectory: settings.workingDirectory,
