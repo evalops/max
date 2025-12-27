@@ -22,6 +22,7 @@ import {
   Play,
   Brain,
   Loader,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store";
@@ -60,8 +61,15 @@ const activityIcons: Record<string, typeof FileEdit> = {
 };
 
 export function ComputerPanel({ agent, document, tasks, className }: ComputerPanelProps) {
-  const { session } = useAppStore();
+  const { session, settings } = useAppStore();
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Calculate budget usage
+  const budgetPercentage = settings.maxBudgetUsd > 0
+    ? (session.totalCost / settings.maxBudgetUsd) * 100
+    : 0;
+  const isNearBudget = budgetPercentage >= 80;
+  const isOverBudget = budgetPercentage >= 100;
 
   // Update elapsed time every second when session is running
   useEffect(() => {
@@ -141,9 +149,22 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
             <Zap size={12} />
             <span>{session.turnCount} turns</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-ink-400">
-            <DollarSign size={12} />
-            <span>${session.totalCost.toFixed(4)}</span>
+          <div className={cn(
+            "flex items-center gap-1.5 text-xs",
+            isOverBudget ? "text-red-400" : isNearBudget ? "text-terminal-amber" : "text-ink-400"
+          )}>
+            {isOverBudget ? (
+              <AlertTriangle size={12} className="text-red-400" />
+            ) : isNearBudget ? (
+              <AlertTriangle size={12} className="text-terminal-amber" />
+            ) : (
+              <DollarSign size={12} />
+            )}
+            <span>
+              ${session.totalCost.toFixed(4)}
+              {isOverBudget && " (over budget)"}
+              {isNearBudget && !isOverBudget && ` (${budgetPercentage.toFixed(0)}%)`}
+            </span>
           </div>
         </div>
       )}
