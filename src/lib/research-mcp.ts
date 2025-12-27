@@ -616,6 +616,245 @@ print("Chart saved successfully")
   }
 );
 
+// Tool: Download arXiv paper PDF
+const downloadArxivPaperTool = tool(
+  "research_arxiv_download",
+  `Download an arXiv paper PDF.
+
+Examples:
+- Download by ID: {arxivId: "2301.07041"}
+- Download with custom name: {arxivId: "2301.07041", outputPath: "transformer_paper.pdf"}`,
+  {
+    arxivId: z.string().describe("arXiv paper ID (e.g., '2301.07041' or full URL)"),
+    outputPath: z.string().optional().describe("Output file path (default: <arxivId>.pdf)"),
+  },
+  async (args, extra) => {
+    const { arxivId: rawId, outputPath } = args;
+    const context = extra as { cwd?: string };
+    const cwd = context?.cwd || process.cwd();
+
+    // Extract ID from URL if needed
+    const arxivId = rawId.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "");
+    const outPath = outputPath || `${arxivId.replace("/", "_")}.pdf`;
+    const fullPath = path.isAbsolute(outPath) ? outPath : path.join(cwd, outPath);
+
+    try {
+      // Get paper metadata first
+      const metaUrl = `http://export.arxiv.org/api/query?id_list=${arxivId}`;
+      const metaResponse = await fetch(metaUrl);
+      const metaXml = await metaResponse.text();
+
+      const title = metaXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/\n/g, " ").trim();
+      if (!title || title === "Error") {
+        return {
+          content: [{ type: "text", text: `Paper not found: ${arxivId}` }],
+          isError: true,
+        };
+      }
+
+      // Download PDF
+      const pdfUrl = `https://arxiv.org/pdf/${arxivId}.pdf`;
+      const pdfResponse = await fetch(pdfUrl);
+
+      if (!pdfResponse.ok) {
+        return {
+          content: [{ type: "text", text: `Failed to download PDF: ${pdfResponse.statusText}` }],
+          isError: true,
+        };
+      }
+
+      const pdfBuffer = await pdfResponse.arrayBuffer();
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, Buffer.from(pdfBuffer));
+
+      const sizeKb = Math.round(pdfBuffer.byteLength / 1024);
+
+      return {
+        content: [{
+          type: "text",
+          text: `✅ Downloaded paper: ${title}\n\n📄 Saved to: ${outPath}\n📦 Size: ${sizeKb} KB\n🔗 arXiv: https://arxiv.org/abs/${arxivId}`
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Download failed: ${error instanceof Error ? error.message : String(error)}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Tool: Get paper details from arXiv
+const getArxivPaperTool = tool(
+  "research_arxiv_paper",
+  `Get detailed information about a specific arXiv paper.
+
+Examples:
+- Get paper: {arxivId: "2301.07041"}`,
+  {
+    arxivId: z.string().describe("arXiv paper ID (e.g., '2301.07041')"),
+  },
+  async (args) => {
+    const { arxivId: rawId } = args;
+    const arxivId = rawId.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "");
+
+    try {
+      const url = `http://export.arxiv.org/api/query?id_list=${arxivId}`;
+      const response = await fetch(url);
+      const xml = await response.text();
+
+      const title = xml.match(/<title>([\s\S]*?)<\/title>/g)?.[1]?.replace(/<\/?title>/g, "").replace(/\n/g, " ").trim();
+      const summary = xml.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.replace(/\n/g, " ").trim();
+      const published = xml.match(/<published>([\s\S]*?)<\/published>/)?.[1]?.trim();
+      const updated = xml.match(/<updated>([\s\S]*?)<\/updated>/)?.[1]?.trim();
+      const category = xml.match(/<arxiv:primary_category[^>]*term="([^"]+)"/)?.[1];
+      const doi = xml.match(/<arxiv:doi>([\s\S]*?)<\/arxiv:doi>/)?.[1];
+      const journalRef = xml.match(/<arxiv:journal_ref>([\s\S]*?)<\/arxiv:journal_ref>/)?.[1];
+      const comment = xml.match(/<arxiv:comment>([\s\S]*?)<\/arxiv:comment>/)?.[1];
+
+      const authorMatches = xml.matchAll(/<author>\s*<name>([\s\S]*?)<\/name>/g);
+      const authors = [...authorMatches].map(m => m[1].trim());
+
+      const allCategories = [...xml.matchAll(/<category[^>]*term="([^"]+)"/g)].map(m => m[1]);
+
+      if (!title) {
+        return {
+          content: [{ type: "text", text: `Paper not found: ${arxivId}` }],
+          isError: true,
+        };
+      }
+
+      let result = `# ${title}\n\n`;
+      result += `**arXiv ID:** ${arxivId}\n`;
+      result += `**Authors:** ${authors.join(", ")}\n`;
+      result += `**Primary Category:** ${category}\n`;
+      if (allCategories.length > 1) {
+        result += `**All Categories:** ${allCategories.join(", ")}\n`;
+      }
+      result += `**Published:** ${published?.split("T")[0]}\n`;
+      if (updated !== published) {
+        result += `**Last Updated:** ${updated?.split("T")[0]}\n`;
+      }
+      if (doi) result += `**DOI:** ${doi}\n`;
+      if (journalRef) result += `**Journal:** ${journalRef}\n`;
+      if (comment) result += `**Comment:** ${comment}\n`;
+      result += "\n## Abstract\n\n";
+      result += summary + "\n\n";
+      result += `## Links\n\n`;
+      result += `- [Abstract](https://arxiv.org/abs/${arxivId})\n`;
+      result += `- [PDF](https://arxiv.org/pdf/${arxivId}.pdf)\n`;
+      result += `- [HTML (ar5iv)](https://ar5iv.labs.arxiv.org/html/${arxivId})\n`;
+
+      return { content: [{ type: "text", text: result }] };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Failed to get paper: ${error instanceof Error ? error.message : String(error)}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Tool: Summarize notebook
+const summarizeNotebookTool = tool(
+  "notebook_summarize",
+  `Summarize the contents and outputs of a Jupyter notebook.
+
+Provides a high-level overview without showing all code.
+
+Examples:
+- Summarize: {path: "analysis.ipynb"}`,
+  {
+    path: z.string().describe("Path to the notebook"),
+  },
+  async (args, extra) => {
+    const { path: notebookPath } = args;
+    const context = extra as { cwd?: string };
+    const cwd = context?.cwd || process.cwd();
+    const fullPath = path.isAbsolute(notebookPath) ? notebookPath : path.join(cwd, notebookPath);
+
+    try {
+      const content = await fs.readFile(fullPath, "utf-8");
+      const notebook = JSON.parse(content);
+
+      let result = `# Notebook Summary: ${notebookPath}\n\n`;
+      result += `**Kernel:** ${notebook.metadata?.kernelspec?.display_name || "Unknown"}\n`;
+      result += `**Cells:** ${notebook.cells.length}\n\n`;
+
+      // Stats
+      const codeCells = notebook.cells.filter((c: { cell_type: string }) => c.cell_type === "code");
+      const markdownCells = notebook.cells.filter((c: { cell_type: string }) => c.cell_type === "markdown");
+      const executedCells = codeCells.filter((c: { execution_count: number | null }) => c.execution_count !== null);
+      const cellsWithOutput = codeCells.filter((c: { outputs?: unknown[] }) => c.outputs && c.outputs.length > 0);
+      const cellsWithError = codeCells.filter((c: { outputs?: Array<{ output_type: string }> }) =>
+        c.outputs?.some((o: { output_type: string }) => o.output_type === "error")
+      );
+      const cellsWithImages = codeCells.filter((c: { outputs?: Array<{ data?: Record<string, unknown> }> }) =>
+        c.outputs?.some((o: { data?: Record<string, unknown> }) => o.data && ("image/png" in o.data || "image/jpeg" in o.data || "image/svg+xml" in o.data))
+      );
+
+      result += `## Statistics\n\n`;
+      result += `- **Code cells:** ${codeCells.length} (${executedCells.length} executed)\n`;
+      result += `- **Markdown cells:** ${markdownCells.length}\n`;
+      result += `- **Cells with output:** ${cellsWithOutput.length}\n`;
+      result += `- **Cells with errors:** ${cellsWithError.length}\n`;
+      result += `- **Cells with visualizations:** ${cellsWithImages.length}\n\n`;
+
+      // Get markdown headings for TOC
+      const headings: string[] = [];
+      for (const cell of markdownCells) {
+        const source = Array.isArray(cell.source) ? cell.source.join("") : cell.source;
+        const headerMatches = source.matchAll(/^(#{1,3})\s+(.+)$/gm);
+        for (const match of headerMatches) {
+          const level = match[1].length;
+          const text = match[2].trim();
+          headings.push("  ".repeat(level - 1) + `- ${text}`);
+        }
+      }
+
+      if (headings.length > 0) {
+        result += `## Table of Contents\n\n`;
+        result += headings.join("\n") + "\n\n";
+      }
+
+      // Imports used
+      const imports: Set<string> = new Set();
+      for (const cell of codeCells) {
+        const source = Array.isArray(cell.source) ? cell.source.join("") : cell.source;
+        const importMatches = source.matchAll(/^(?:import|from)\s+(\w+)/gm);
+        for (const match of importMatches) {
+          imports.add(match[1]);
+        }
+      }
+
+      if (imports.size > 0) {
+        result += `## Libraries Used\n\n`;
+        result += [...imports].sort().map(i => `- ${i}`).join("\n") + "\n\n";
+      }
+
+      // Errors if any
+      if (cellsWithError.length > 0) {
+        result += `## Errors\n\n`;
+        for (let i = 0; i < cellsWithError.length; i++) {
+          const cell = cellsWithError[i];
+          const error = cell.outputs?.find((o: { output_type: string }) => o.output_type === "error") as { ename?: string; evalue?: string } | undefined;
+          if (error) {
+            result += `- Cell ${notebook.cells.indexOf(cell) + 1}: ${error.ename}: ${error.evalue}\n`;
+          }
+        }
+        result += "\n";
+      }
+
+      return { content: [{ type: "text", text: result }] };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Failed to summarize notebook: ${error instanceof Error ? error.message : String(error)}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
 /**
  * Create the Research MCP server with all tools
  */
@@ -633,12 +872,18 @@ export function createResearchMcpServer(cwd?: string) {
     name: "research",
     version: "1.0.0",
     tools: [
+      // Notebook tools
       wrapTool(createNotebookTool),
       wrapTool(addCellsTool),
       wrapTool(executeNotebookTool),
       wrapTool(readNotebookTool),
+      wrapTool(summarizeNotebookTool),
+      // Research tools
       wrapTool(searchArxivTool),
+      wrapTool(getArxivPaperTool),
+      wrapTool(downloadArxivPaperTool),
       wrapTool(searchSemanticScholarTool),
+      // Analysis tools
       wrapTool(runPythonTool),
       wrapTool(createVisualizationTool),
     ],
