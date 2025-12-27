@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.ink.300') transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: theme('colors.ink.300');
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.ink.400');
+  }
+
+  /* Selection colors */
+  ::selection {
+    background-color: theme('colors.terminal.blue / 20%');
+    color: theme('colors.ink.900');
+  }
+
+  /* Focus ring styles */
+  :focus-visible {
+    outline: 2px solid theme('colors.terminal.blue');
+    outline-offset: 2px;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-stagger > * {
+    --stagger: 50ms;
+    animation-delay: calc(var(--index, 0) * var(--stagger));
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, theme('colors.terminal.blue'), theme('colors.terminal.purple'));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Panel glass effect */
+  .glass {
+    backdrop-filter: blur(8px);
+    background-color: rgb(255 255 255 / 0.8);
+  }
+
+  /* Subtle noise texture overlay */
+  .noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Activity timeline connector */
+  .timeline-connector {
+    @apply absolute left-[13px] top-9 h-[calc(100%-20px)] w-px;
+    background: linear-gradient(to bottom, theme('colors.ink.200'), transparent);
+  }
+
+  /* Status badge */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-xs;
+  }
+
+  /* Panel header */
+  .panel-header {
+    @apply flex shrink-0 items-center justify-between border-b px-4 py-3;
+  }
+
+  /* Icon button */
+  .icon-btn {
+    @apply rounded-md p-1.5 transition-colors;
+  }
+
+  .icon-btn-ghost {
+    @apply icon-btn text-ink-400 hover:bg-paper-200 hover:text-ink-600;
+  }
+
+  .icon-btn-dark {
+    @apply icon-btn text-ink-500 hover:bg-ink-800 hover:text-ink-300;
+  }
+}
+
+/* Framer Motion animation variants via CSS for initial load */
+@layer utilities {
+  .motion-safe\:animate-fade-in {
+    @apply motion-safe:animate-fade-in;
+  }
+
+  .motion-safe\:animate-slide-up {
+    @apply motion-safe:animate-slide-up;
+  }
+}
