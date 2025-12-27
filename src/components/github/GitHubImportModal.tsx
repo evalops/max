@@ -13,9 +13,15 @@ import {
   AlertCircle,
   ArrowLeft,
   ExternalLink,
+  Folder,
+  FileCode,
+  File,
+  GitBranch,
+  Check,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGitHub, type GitHubRepo, type GitHubIssue, type GitHubPR } from "@/hooks/useGitHub";
+import { useGitHub, type GitHubRepo, type GitHubIssue, type GitHubPR, type GitHubFile } from "@/hooks/useGitHub";
 
 interface GitHubImportModalProps {
   isOpen: boolean;
@@ -23,7 +29,32 @@ interface GitHubImportModalProps {
   onImport: (content: string) => void;
 }
 
-type View = "repos" | "repo-detail" | "issues" | "prs" | "issue-detail" | "pr-detail";
+type View = "repos" | "repo-detail" | "issue-detail" | "pr-detail" | "files" | "file-preview";
+
+// File extension to language mapping for syntax highlighting hints
+const extToLang: Record<string, string> = {
+  ts: "typescript",
+  tsx: "typescript",
+  js: "javascript",
+  jsx: "javascript",
+  py: "python",
+  rb: "ruby",
+  go: "go",
+  rs: "rust",
+  java: "java",
+  cpp: "cpp",
+  c: "c",
+  h: "c",
+  css: "css",
+  scss: "scss",
+  html: "html",
+  json: "json",
+  yaml: "yaml",
+  yml: "yaml",
+  md: "markdown",
+  sh: "bash",
+  bash: "bash",
+};
 
 export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportModalProps) {
   const {
@@ -37,6 +68,8 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
     getPRs,
     getPR,
     getPRDiff,
+    getDirectoryContents,
+    getFileContent,
   } = useGitHub();
 
   const [view, setView] = useState<View>("repos");
@@ -48,6 +81,14 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
   const [selectedIssue, setSelectedIssue] = useState<GitHubIssue | null>(null);
   const [selectedPR, setSelectedPR] = useState<GitHubPR | null>(null);
   const [prDiff, setPrDiff] = useState<string | null>(null);
+
+  // File browser state
+  const [files, setFiles] = useState<GitHubFile[]>([]);
+  const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 
   const loadRepos = useCallback(async () => {
     const data = await getRepos({ type: "all", sort: "updated" });
@@ -72,6 +113,7 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
 
   const handleSelectRepo = async (repo: GitHubRepo) => {
     setSelectedRepo(repo);
+    setSelectedBranch(repo.default_branch);
     setView("repo-detail");
 
     const [owner, name] = repo.full_name.split("/");
@@ -105,6 +147,69 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
       setPrDiff(diff);
       setView("pr-detail");
     }
+  };
+
+  const handleBrowseFiles = async () => {
+    if (!selectedRepo) return;
+    const [owner, name] = selectedRepo.full_name.split("/");
+    setCurrentPath([]);
+    const contents = await getDirectoryContents(owner, name, "", selectedBranch);
+    // Sort: directories first, then files alphabetically
+    const sorted = [...contents].sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === "dir" ? -1 : 1;
+    });
+    setFiles(sorted);
+    setView("files");
+  };
+
+  const handleNavigateToDir = async (dir: GitHubFile) => {
+    if (!selectedRepo) return;
+    const [owner, name] = selectedRepo.full_name.split("/");
+    const newPath = [...currentPath, dir.name];
+    setCurrentPath(newPath);
+    const contents = await getDirectoryContents(owner, name, newPath.join("/"), selectedBranch);
+    const sorted = [...contents].sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === "dir" ? -1 : 1;
+    });
+    setFiles(sorted);
+  };
+
+  const handleNavigateUp = async () => {
+    if (!selectedRepo || currentPath.length === 0) return;
+    const [owner, name] = selectedRepo.full_name.split("/");
+    const newPath = currentPath.slice(0, -1);
+    setCurrentPath(newPath);
+    const contents = await getDirectoryContents(owner, name, newPath.join("/"), selectedBranch);
+    const sorted = [...contents].sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === "dir" ? -1 : 1;
+    });
+    setFiles(sorted);
+  };
+
+  const handleSelectFile = async (file: GitHubFile) => {
+    if (!selectedRepo) return;
+    const [owner, name] = selectedRepo.full_name.split("/");
+    const fullPath = [...currentPath, file.name].join("/");
+    const content = await getFileContent(owner, name, fullPath, selectedBranch);
+    if (content) {
+      setSelectedFile({ ...file, path: fullPath });
+      setFileContent(content.content || null);
+      setView("file-preview");
+    }
+  };
+
+  const toggleFileSelection = (file: GitHubFile) => {
+    const fullPath = [...currentPath, file.name].join("/");
+    const newSelected = new Set(selectedFiles);
+    if (newSelected.has(fullPath)) {
+      newSelected.delete(fullPath);
+    } else {
+      newSelected.add(fullPath);
+    }
+    setSelectedFiles(newSelected);
   };
 
   const handleImportIssue = () => {
@@ -144,15 +249,50 @@ URL: ${selectedPR.html_url}`;
     onClose();
   };
 
+  const handleImportFile = () => {
+    if (!selectedFile || !fileContent || !selectedRepo) return;
+    const ext = selectedFile.name.split(".").pop() || "";
+    const lang = extToLang[ext] || ext;
+
+    const content = `GitHub File: ${selectedRepo.full_name}/${selectedFile.path} (${selectedBranch})
+
+\`\`\`${lang}
+${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncated)" : ""}
+\`\`\``;
+
+    onImport(content);
+    onClose();
+  };
+
+  const handleImportSelectedFiles = async () => {
+    if (!selectedRepo || selectedFiles.size === 0) return;
+    const [owner, name] = selectedRepo.full_name.split("/");
+
+    const contents: string[] = [];
+    for (const path of selectedFiles) {
+      const file = await getFileContent(owner, name, path, selectedBranch);
+      if (file?.content) {
+        const ext = path.split(".").pop() || "";
+        const lang = extToLang[ext] || ext;
+        contents.push(`**${path}**\n\`\`\`${lang}\n${file.content.substring(0, 5000)}${file.content.length > 5000 ? "\n... (truncated)" : ""}\n\`\`\``);
+      }
+    }
+
+    if (contents.length > 0) {
+      const content = `GitHub Files from ${selectedRepo.full_name} (${selectedBranch}):\n\n${contents.join("\n\n---\n\n")}`;
+      onImport(content);
+      onClose();
+    }
+  };
+
   const goBack = useCallback(() => {
     switch (view) {
       case "repo-detail":
-      case "issues":
-      case "prs":
         setView("repos");
         setSelectedRepo(null);
         setIssues([]);
         setPrs([]);
+        setSelectedBranch("");
         break;
       case "issue-detail":
         setView("repo-detail");
@@ -162,6 +302,17 @@ URL: ${selectedPR.html_url}`;
         setView("repo-detail");
         setSelectedPR(null);
         setPrDiff(null);
+        break;
+      case "files":
+        setView("repo-detail");
+        setFiles([]);
+        setCurrentPath([]);
+        setSelectedFiles(new Set());
+        break;
+      case "file-preview":
+        setView("files");
+        setSelectedFile(null);
+        setFileContent(null);
         break;
     }
   }, [view]);
@@ -175,11 +326,26 @@ URL: ${selectedPR.html_url}`;
     setPrDiff(null);
     setIssues([]);
     setPrs([]);
+    setFiles([]);
+    setCurrentPath([]);
+    setSelectedFile(null);
+    setFileContent(null);
+    setSelectedBranch("");
+    setSelectedFiles(new Set());
   }, []);
 
   const handleClose = () => {
     resetModal();
     onClose();
+  };
+
+  const getFileIcon = (file: GitHubFile) => {
+    if (file.type === "dir") return <Folder size={16} className="text-terminal-blue" />;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "c", "cpp", "h"].includes(ext || "")) {
+      return <FileCode size={16} className="text-terminal-green" />;
+    }
+    return <File size={16} className="text-ink-400" />;
   };
 
   if (!isOpen) return null;
@@ -197,7 +363,7 @@ URL: ${selectedPR.html_url}`;
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl"
+          className="relative max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -217,6 +383,13 @@ URL: ${selectedPR.html_url}`;
                 {view === "repo-detail" && selectedRepo?.name}
                 {view === "issue-detail" && `Issue #${selectedIssue?.number}`}
                 {view === "pr-detail" && `PR #${selectedPR?.number}`}
+                {view === "files" && (
+                  <span className="flex items-center gap-2">
+                    <FolderOpen size={18} />
+                    {currentPath.length > 0 ? currentPath.join("/") : "Files"}
+                  </span>
+                )}
+                {view === "file-preview" && selectedFile?.name}
               </h2>
             </div>
             <button
@@ -307,7 +480,7 @@ URL: ${selectedPR.html_url}`;
                 {/* Repo Detail View */}
                 {view === "repo-detail" && selectedRepo && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between">
                       <a
                         href={selectedRepo.html_url}
                         target="_blank"
@@ -316,6 +489,12 @@ URL: ${selectedPR.html_url}`;
                       >
                         View on GitHub <ExternalLink size={12} />
                       </a>
+                      <div className="flex items-center gap-2">
+                        <GitBranch size={14} className="text-ink-400" />
+                        <span className="rounded bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
+                          {selectedBranch}
+                        </span>
+                      </div>
                     </div>
 
                     {isLoading ? (
@@ -323,60 +502,217 @@ URL: ${selectedPR.html_url}`;
                         <Loader2 size={24} className="animate-spin text-ink-400" />
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Issues */}
-                        <div className="rounded-lg border border-ink-200 p-4">
-                          <div className="mb-3 flex items-center gap-2">
-                            <CircleDot size={16} className="text-terminal-green" />
-                            <span className="font-medium text-ink-700">Open Issues</span>
-                            <span className="rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-500">
-                              {issues.length}
-                            </span>
+                      <>
+                        {/* Browse Files Button */}
+                        <button
+                          onClick={handleBrowseFiles}
+                          className="flex w-full items-center justify-between rounded-lg border-2 border-dashed border-ink-200 p-4 text-left transition-colors hover:border-terminal-blue hover:bg-terminal-blue/5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <FolderOpen size={20} className="text-terminal-blue" />
+                            <div>
+                              <span className="font-medium text-ink-700">Browse Files</span>
+                              <p className="text-sm text-ink-500">Import code files from this repository</p>
+                            </div>
                           </div>
-                          <div className="max-h-60 space-y-2 overflow-y-auto">
-                            {issues.slice(0, 10).map((issue) => (
-                              <button
-                                key={issue.id}
-                                onClick={() => handleSelectIssue(issue)}
-                                className="w-full rounded-md p-2 text-left text-sm hover:bg-ink-50"
-                              >
-                                <span className="text-ink-400">#{issue.number}</span>{" "}
-                                <span className="text-ink-700">{issue.title}</span>
-                              </button>
-                            ))}
-                            {issues.length === 0 && (
-                              <p className="text-sm text-ink-400">No open issues</p>
-                            )}
-                          </div>
-                        </div>
+                          <ChevronRight size={16} className="text-ink-400" />
+                        </button>
 
-                        {/* PRs */}
-                        <div className="rounded-lg border border-ink-200 p-4">
-                          <div className="mb-3 flex items-center gap-2">
-                            <GitPullRequest size={16} className="text-terminal-purple" />
-                            <span className="font-medium text-ink-700">Open PRs</span>
-                            <span className="rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-500">
-                              {prs.length}
-                            </span>
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Issues */}
+                          <div className="rounded-lg border border-ink-200 p-4">
+                            <div className="mb-3 flex items-center gap-2">
+                              <CircleDot size={16} className="text-terminal-green" />
+                              <span className="font-medium text-ink-700">Open Issues</span>
+                              <span className="rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-500">
+                                {issues.length}
+                              </span>
+                            </div>
+                            <div className="max-h-48 space-y-2 overflow-y-auto">
+                              {issues.slice(0, 10).map((issue) => (
+                                <button
+                                  key={issue.id}
+                                  onClick={() => handleSelectIssue(issue)}
+                                  className="w-full rounded-md p-2 text-left text-sm hover:bg-ink-50"
+                                >
+                                  <span className="text-ink-400">#{issue.number}</span>{" "}
+                                  <span className="text-ink-700">{issue.title}</span>
+                                </button>
+                              ))}
+                              {issues.length === 0 && (
+                                <p className="text-sm text-ink-400">No open issues</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="max-h-60 space-y-2 overflow-y-auto">
-                            {prs.slice(0, 10).map((pr) => (
-                              <button
-                                key={pr.id}
-                                onClick={() => handleSelectPR(pr)}
-                                className="w-full rounded-md p-2 text-left text-sm hover:bg-ink-50"
-                              >
-                                <span className="text-ink-400">#{pr.number}</span>{" "}
-                                <span className="text-ink-700">{pr.title}</span>
-                              </button>
-                            ))}
-                            {prs.length === 0 && (
-                              <p className="text-sm text-ink-400">No open PRs</p>
-                            )}
+
+                          {/* PRs */}
+                          <div className="rounded-lg border border-ink-200 p-4">
+                            <div className="mb-3 flex items-center gap-2">
+                              <GitPullRequest size={16} className="text-terminal-purple" />
+                              <span className="font-medium text-ink-700">Open PRs</span>
+                              <span className="rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-500">
+                                {prs.length}
+                              </span>
+                            </div>
+                            <div className="max-h-48 space-y-2 overflow-y-auto">
+                              {prs.slice(0, 10).map((pr) => (
+                                <button
+                                  key={pr.id}
+                                  onClick={() => handleSelectPR(pr)}
+                                  className="w-full rounded-md p-2 text-left text-sm hover:bg-ink-50"
+                                >
+                                  <span className="text-ink-400">#{pr.number}</span>{" "}
+                                  <span className="text-ink-700">{pr.title}</span>
+                                </button>
+                              ))}
+                              {prs.length === 0 && (
+                                <p className="text-sm text-ink-400">No open PRs</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </>
                     )}
+                  </div>
+                )}
+
+                {/* File Browser View */}
+                {view === "files" && selectedRepo && (
+                  <div className="space-y-4">
+                    {/* Breadcrumb */}
+                    <div className="flex items-center gap-1 text-sm">
+                      <button
+                        onClick={() => {
+                          setCurrentPath([]);
+                          handleBrowseFiles();
+                        }}
+                        className="text-terminal-blue hover:underline"
+                      >
+                        {selectedRepo.name}
+                      </button>
+                      {currentPath.map((segment, i) => (
+                        <span key={i} className="flex items-center gap-1">
+                          <span className="text-ink-400">/</span>
+                          <button
+                            onClick={async () => {
+                              const newPath = currentPath.slice(0, i + 1);
+                              const [owner, name] = selectedRepo.full_name.split("/");
+                              setCurrentPath(newPath);
+                              const contents = await getDirectoryContents(owner, name, newPath.join("/"), selectedBranch);
+                              const sorted = [...contents].sort((a, b) => {
+                                if (a.type === b.type) return a.name.localeCompare(b.name);
+                                return a.type === "dir" ? -1 : 1;
+                              });
+                              setFiles(sorted);
+                            }}
+                            className="text-terminal-blue hover:underline"
+                          >
+                            {segment}
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 size={24} className="animate-spin text-ink-400" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Selected files indicator */}
+                        {selectedFiles.size > 0 && (
+                          <div className="flex items-center justify-between rounded-lg bg-terminal-blue/10 px-4 py-2">
+                            <span className="text-sm font-medium text-terminal-blue">
+                              {selectedFiles.size} file{selectedFiles.size > 1 ? "s" : ""} selected
+                            </span>
+                            <button
+                              onClick={handleImportSelectedFiles}
+                              className="rounded-md bg-terminal-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-terminal-blue/90"
+                            >
+                              Import Selected
+                            </button>
+                          </div>
+                        )}
+
+                        {/* File list */}
+                        <div className="divide-y divide-ink-100 rounded-lg border border-ink-200">
+                          {currentPath.length > 0 && (
+                            <button
+                              onClick={handleNavigateUp}
+                              className="flex w-full items-center gap-3 p-3 text-left hover:bg-ink-50"
+                            >
+                              <Folder size={16} className="text-ink-400" />
+                              <span className="text-sm text-ink-600">..</span>
+                            </button>
+                          )}
+                          {files.map((file) => (
+                            <div
+                              key={file.name}
+                              className="flex items-center gap-3 p-3 hover:bg-ink-50"
+                            >
+                              {file.type === "file" && (
+                                <button
+                                  onClick={() => toggleFileSelection(file)}
+                                  className={cn(
+                                    "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
+                                    selectedFiles.has([...currentPath, file.name].join("/"))
+                                      ? "border-terminal-blue bg-terminal-blue text-white"
+                                      : "border-ink-300 hover:border-terminal-blue"
+                                  )}
+                                >
+                                  {selectedFiles.has([...currentPath, file.name].join("/")) && (
+                                    <Check size={12} />
+                                  )}
+                                </button>
+                              )}
+                              {file.type === "dir" && <div className="size-5" />}
+                              <button
+                                onClick={() => file.type === "dir" ? handleNavigateToDir(file) : handleSelectFile(file)}
+                                className="flex flex-1 items-center gap-2 text-left"
+                              >
+                                {getFileIcon(file)}
+                                <span className="text-sm text-ink-700">{file.name}</span>
+                                {file.type === "dir" && (
+                                  <ChevronRight size={14} className="ml-auto text-ink-400" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
+                          {files.length === 0 && (
+                            <p className="p-4 text-center text-sm text-ink-400">Empty directory</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* File Preview View */}
+                {view === "file-preview" && selectedFile && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileCode size={18} className="text-terminal-green" />
+                        <span className="font-medium text-ink-700">{selectedFile.path}</span>
+                      </div>
+                      <span className="rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-500">
+                        {selectedBranch}
+                      </span>
+                    </div>
+
+                    <div className="max-h-80 overflow-auto rounded-lg border border-ink-200 bg-ink-900">
+                      <pre className="p-4 font-mono text-xs leading-relaxed text-ink-100">
+                        {fileContent?.substring(0, 10000)}
+                        {(fileContent?.length || 0) > 10000 && "\n\n... (truncated)"}
+                      </pre>
+                    </div>
+
+                    <button
+                      onClick={handleImportFile}
+                      className="w-full rounded-lg bg-terminal-blue px-4 py-2.5 font-medium text-white hover:bg-terminal-blue/90"
+                    >
+                      Import File
+                    </button>
                   </div>
                 )}
 

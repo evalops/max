@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type KeyboardEvent, type ChangeEvent, type DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Github,
@@ -12,10 +12,22 @@ import {
   Paperclip,
   Command,
   CornerDownLeft,
+  X,
+  FileCode,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GitHubImportModal } from "@/components/github";
 import { useAppStore } from "@/store";
+
+interface Attachment {
+  id: string;
+  name: string;
+  content: string;
+  type: "file" | "image" | "github";
+  size: number;
+}
 
 interface MessageInputProps {
   agentName: string;
@@ -33,6 +45,22 @@ const suggestedPrompts = [
   "Explain how this works",
 ];
 
+// File extension to language mapping
+const extToLang: Record<string, string> = {
+  ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript",
+  py: "python", rb: "ruby", go: "go", rs: "rust", java: "java",
+  cpp: "cpp", c: "c", h: "c", css: "css", scss: "scss", html: "html",
+  json: "json", yaml: "yaml", yml: "yaml", md: "markdown", sh: "bash",
+};
+
+const ACCEPTED_FILE_TYPES = [
+  ".txt", ".md", ".json", ".js", ".ts", ".tsx", ".jsx", ".py", ".rb", ".go",
+  ".rs", ".java", ".c", ".cpp", ".h", ".css", ".scss", ".html", ".xml",
+  ".yaml", ".yml", ".toml", ".sh", ".bash", ".png", ".jpg", ".jpeg", ".gif", ".webp"
+];
+
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+
 export function MessageInput({
   agentName,
   onSend,
@@ -45,9 +73,13 @@ export function MessageInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showGitHubModal, setShowGitHubModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const voiceLanguage = "en-US"; // Could be made configurable in settings
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const dragCounterRef = useRef(0);
   const { settings } = useAppStore();
 
   // Focus input on mount
@@ -68,19 +100,43 @@ export function MessageInput({
         inputRef.current?.blur();
         setShowSuggestions(false);
       }
+      // Cmd/Ctrl + V for paste (handled natively, but we track it)
+      if ((e.metaKey || e.ctrlKey) && e.key === "v") {
+        // Paste handling is done via onPaste event
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const formatAttachmentsForMessage = useCallback(() => {
+    if (attachments.length === 0) return "";
+
+    return attachments.map(att => {
+      if (att.type === "github") {
+        return att.content;
+      }
+      const ext = att.name.split(".").pop() || "";
+      const lang = extToLang[ext] || ext;
+      if (att.type === "image") {
+        return `[Image: ${att.name}]`;
+      }
+      return `**File: ${att.name}**\n\`\`\`${lang}\n${att.content}\n\`\`\``;
+    }).join("\n\n");
+  }, [attachments]);
+
   const handleSend = useCallback(() => {
-    if (message.trim() && !isProcessing) {
-      onSend(message.trim());
+    const attachmentContent = formatAttachmentsForMessage();
+    const fullMessage = [message.trim(), attachmentContent].filter(Boolean).join("\n\n");
+
+    if (fullMessage && !isProcessing) {
+      onSend(fullMessage);
       setMessage("");
+      setAttachments([]);
       setShowSuggestions(false);
     }
-  }, [message, onSend, isProcessing]);
+  }, [message, formatAttachmentsForMessage, onSend, isProcessing]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -99,28 +155,143 @@ export function MessageInput({
   };
 
   const handleGitHubImport = (content: string) => {
-    setMessage((prev) => prev + (prev ? "\n\n" : "") + content);
+    const id = `gh-${Date.now()}`;
+    setAttachments(prev => [...prev, {
+      id,
+      name: "GitHub Import",
+      content,
+      type: "github",
+      size: content.length,
+    }]);
     inputRef.current?.focus();
   };
 
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = async (file: File): Promise<Attachment | null> => {
+    const ext = `.${file.name.split(".").pop()?.toLowerCase()}`;
+    const isImage = IMAGE_EXTENSIONS.includes(ext);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      const fileInfo = `File: ${file.name}\n\`\`\`\n${content.substring(0, 10000)}${content.length > 10000 ? "\n... (truncated)" : ""}\n\`\`\``;
-      setMessage((prev) => prev + (prev ? "\n\n" : "") + fileInfo);
-      inputRef.current?.focus();
-    };
-    reader.readAsText(file);
-    // Reset the input so the same file can be selected again
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        const truncatedContent = isImage
+          ? content
+          : content.substring(0, 15000) + (content.length > 15000 ? "\n... (truncated)" : "");
+
+        resolve({
+          id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: file.name,
+          content: truncatedContent,
+          type: isImage ? "image" : "file",
+          size: file.size,
+        });
+      };
+      reader.onerror = () => resolve(null);
+
+      if (isImage) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
+    });
+  };
+
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newAttachments: Attachment[] = [];
+    for (const file of Array.from(files)) {
+      const attachment = await processFile(file);
+      if (attachment) {
+        newAttachments.push(attachment);
+      }
+    }
+
+    setAttachments(prev => [...prev, ...newAttachments]);
+    inputRef.current?.focus();
     e.target.value = "";
   };
 
+  const handleDragEnter = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const newAttachments: Attachment[] = [];
+    for (const file of Array.from(files)) {
+      const ext = `.${file.name.split(".").pop()?.toLowerCase()}`;
+      if (ACCEPTED_FILE_TYPES.includes(ext)) {
+        const attachment = await processFile(file);
+        if (attachment) {
+          newAttachments.push(attachment);
+        }
+      }
+    }
+
+    if (newAttachments.length > 0) {
+      setAttachments(prev => [...prev, ...newAttachments]);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    const files: File[] = [];
+
+    for (const item of Array.from(items)) {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      e.preventDefault();
+      const newAttachments: Attachment[] = [];
+      for (const file of files) {
+        const attachment = await processFile(file);
+        if (attachment) {
+          newAttachments.push(attachment);
+        }
+      }
+      setAttachments(prev => [...prev, ...newAttachments]);
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
   const toggleVoiceRecording = useCallback(() => {
-    // Check for browser support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Voice input is not supported in your browser. Try Chrome or Edge.");
@@ -128,19 +299,17 @@ export function MessageInput({
     }
 
     if (isRecording) {
-      // Stop recording
       recognitionRef.current?.stop();
       setIsRecording(false);
       return;
     }
 
-    // Start recording
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = voiceLanguage;
 
-    let finalTranscript = "";
+    let finalTranscript = message; // Start with existing message
 
     recognition.onstart = () => {
       setIsRecording(true);
@@ -151,12 +320,12 @@ export function MessageInput({
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + " ";
+          finalTranscript += (finalTranscript ? " " : "") + transcript;
         } else {
           interimTranscript += transcript;
         }
       }
-      setMessage(finalTranscript + interimTranscript);
+      setMessage(finalTranscript + (interimTranscript ? " " + interimTranscript : ""));
     };
 
     recognition.onerror = (event) => {
@@ -166,14 +335,11 @@ export function MessageInput({
 
     recognition.onend = () => {
       setIsRecording(false);
-      if (finalTranscript.trim()) {
-        setMessage(finalTranscript.trim());
-      }
     };
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isRecording]);
+  }, [isRecording, message, voiceLanguage]);
 
   // Cleanup speech recognition on unmount
   useEffect(() => {
@@ -182,14 +348,101 @@ export function MessageInput({
     };
   }, []);
 
-  const canSend = message.trim() && hasApiKey;
+  const canSend = (message.trim() || attachments.length > 0) && hasApiKey;
   const hasGitHubToken = !!settings.githubToken;
 
+  const getAttachmentIcon = (att: Attachment) => {
+    if (att.type === "image") return <ImageIcon size={12} />;
+    if (att.type === "github") return <Github size={12} />;
+    return <FileCode size={12} />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
-    <div className={cn("border-t border-paper-400/50 bg-paper-100 p-4", className)}>
+    <div
+      className={cn("border-t border-paper-400/50 bg-paper-100 p-4", className)}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-terminal-blue/10"
+          >
+            <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-terminal-blue bg-white p-8 shadow-lg">
+              <Upload size={48} className="text-terminal-blue" />
+              <span className="text-lg font-medium text-terminal-blue">Drop files to attach</span>
+              <span className="text-sm text-ink-500">Supports code files, text, and images</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Attachments */}
+      <AnimatePresence>
+        {attachments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3"
+          >
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((att) => (
+                <motion.div
+                  key={att.id}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className={cn(
+                    "group flex items-center gap-2 rounded-lg border px-3 py-1.5",
+                    att.type === "image"
+                      ? "border-terminal-purple/30 bg-terminal-purple/5"
+                      : att.type === "github"
+                      ? "border-ink-300 bg-ink-50"
+                      : "border-terminal-green/30 bg-terminal-green/5"
+                  )}
+                >
+                  <span className={cn(
+                    att.type === "image" ? "text-terminal-purple"
+                    : att.type === "github" ? "text-ink-600"
+                    : "text-terminal-green"
+                  )}>
+                    {getAttachmentIcon(att)}
+                  </span>
+                  <span className="max-w-32 truncate text-xs font-medium text-ink-700">
+                    {att.name}
+                  </span>
+                  <span className="text-xs text-ink-400">
+                    {formatFileSize(att.size)}
+                  </span>
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="rounded p-0.5 text-ink-400 opacity-0 transition-all hover:bg-ink-200 hover:text-ink-600 group-hover:opacity-100"
+                  >
+                    <X size={12} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Suggestions dropdown */}
       <AnimatePresence>
-        {showSuggestions && !message && (
+        {showSuggestions && !message && attachments.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -218,6 +471,8 @@ export function MessageInput({
           "flex items-center gap-3 rounded-xl border bg-white px-4 py-2.5 shadow-soft transition-all",
           isProcessing
             ? "border-terminal-blue/30 ring-2 ring-terminal-blue/10"
+            : isDragging
+            ? "border-terminal-blue ring-2 ring-terminal-blue/20"
             : "border-paper-400 focus-within:border-ink-300 focus-within:shadow-elevated"
         )}
       >
@@ -226,7 +481,7 @@ export function MessageInput({
           onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
           className="shrink-0 rounded-md p-1 text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-600 disabled:cursor-not-allowed disabled:opacity-50"
-          title="Attach file"
+          title="Attach files (or drag & drop)"
         >
           <Paperclip size={18} />
         </button>
@@ -234,7 +489,8 @@ export function MessageInput({
           ref={fileInputRef}
           type="file"
           onChange={handleFileSelect}
-          accept=".txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.css,.scss,.html,.xml,.yaml,.yml,.toml,.sh,.bash"
+          accept={ACCEPTED_FILE_TYPES.join(",")}
+          multiple
           className="hidden"
         />
 
@@ -247,9 +503,12 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onPaste={handlePaste}
           placeholder={
             !hasApiKey
               ? "Add API key in settings to start..."
+              : attachments.length > 0
+              ? "Add a message or send attachments..."
               : `Message ${agentName}...`
           }
           disabled={isProcessing}
@@ -259,7 +518,7 @@ export function MessageInput({
         {/* Action buttons */}
         <div className="flex shrink-0 items-center gap-1">
           {/* Keyboard shortcut hint */}
-          {!message && !isProcessing && (
+          {!message && !isProcessing && attachments.length === 0 && (
             <div className="mr-2 hidden items-center gap-1 text-xs text-ink-300 sm:flex">
               <kbd className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[10px]">
                 <Command size={10} className="inline" />K
@@ -321,7 +580,7 @@ export function MessageInput({
                   ? "bg-ink-900 text-white hover:bg-ink-700"
                   : "bg-ink-200 text-ink-400"
               )}
-              title={canSend ? "Send (Enter)" : !hasApiKey ? "API key required" : "Type a message"}
+              title={canSend ? "Send (Enter)" : !hasApiKey ? "API key required" : "Type a message or attach files"}
             >
               <Send size={14} />
             </motion.button>
@@ -343,6 +602,30 @@ export function MessageInput({
             <Zap size={12} />
             {hasApiKey ? "Ready" : "API key required"}
           </span>
+
+          {/* Recording indicator */}
+          {isRecording && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-600"
+            >
+              <motion.span
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                className="size-2 rounded-full bg-red-500"
+              />
+              Recording...
+            </motion.span>
+          )}
+
+          {/* Attachment count */}
+          {attachments.length > 0 && !isRecording && (
+            <span className="flex items-center gap-1.5 rounded-full bg-terminal-blue/10 px-2.5 py-1 text-xs font-medium text-terminal-blue">
+              <Paperclip size={12} />
+              {attachments.length} file{attachments.length > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
 
         {/* Enter hint */}
