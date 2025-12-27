@@ -24,6 +24,7 @@ export type ThemeMode = "light" | "dark" | "system";
 interface Settings {
   theme: ThemeMode;
   apiKey: string;
+  githubToken: string;
   model: string;
   maxTurns: number;
   maxBudgetUsd: number;
@@ -115,6 +116,7 @@ const defaultAgent: AgentState = {
 const defaultSettings: Settings = {
   theme: "light",
   apiKey: "",
+  githubToken: "",
   model: "claude-sonnet-4-20250514",
   maxTurns: 50,
   maxBudgetUsd: 10,

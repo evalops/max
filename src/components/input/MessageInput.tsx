@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Github,
   Mic,
+  MicOff,
   Square,
   Zap,
   Send,
@@ -13,6 +14,8 @@ import {
   CornerDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GitHubImportModal } from "@/components/github";
+import { useAppStore } from "@/store";
 
 interface MessageInputProps {
   agentName: string;
@@ -40,7 +43,12 @@ export function MessageInput({
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const { settings } = useAppStore();
 
   // Focus input on mount
   useEffect(() => {
@@ -90,7 +98,92 @@ export function MessageInput({
     inputRef.current?.focus();
   };
 
+  const handleGitHubImport = (content: string) => {
+    setMessage((prev) => prev + (prev ? "\n\n" : "") + content);
+    inputRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const fileInfo = `File: ${file.name}\n\`\`\`\n${content.substring(0, 10000)}${content.length > 10000 ? "\n... (truncated)" : ""}\n\`\`\``;
+      setMessage((prev) => prev + (prev ? "\n\n" : "") + fileInfo);
+      inputRef.current?.focus();
+    };
+    reader.readAsText(file);
+    // Reset the input so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const toggleVoiceRecording = useCallback(() => {
+    // Check for browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in your browser. Try Chrome or Edge.");
+      return;
+    }
+
+    if (isRecording) {
+      // Stop recording
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    // Start recording
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    let finalTranscript = "";
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      setMessage(finalTranscript + interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      if (finalTranscript.trim()) {
+        setMessage(finalTranscript.trim());
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isRecording]);
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
   const canSend = message.trim() && hasApiKey;
+  const hasGitHubToken = !!settings.githubToken;
 
   return (
     <div className={cn("border-t border-paper-400/50 bg-paper-100 p-4", className)}>
@@ -128,14 +221,22 @@ export function MessageInput({
             : "border-paper-400 focus-within:border-ink-300 focus-within:shadow-elevated"
         )}
       >
-        {/* Attachment button - coming soon */}
+        {/* Attachment button */}
         <button
-          disabled
-          className="shrink-0 cursor-not-allowed rounded-md p-1 text-ink-300 opacity-50"
-          title="Attach file (coming soon)"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isProcessing}
+          className="shrink-0 rounded-md p-1 text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-600 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Attach file"
         >
           <Paperclip size={18} />
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileSelect}
+          accept=".txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.css,.scss,.html,.xml,.yaml,.yml,.toml,.sh,.bash"
+          className="hidden"
+        />
 
         {/* Text input */}
         <input
@@ -167,22 +268,34 @@ export function MessageInput({
             </div>
           )}
 
-          {/* GitHub button - coming soon */}
+          {/* GitHub button */}
           <button
-            disabled
-            className="cursor-not-allowed rounded-md p-1.5 text-ink-300 opacity-50"
-            title="Import from GitHub (coming soon)"
+            onClick={() => setShowGitHubModal(true)}
+            disabled={isProcessing}
+            className={cn(
+              "rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              hasGitHubToken
+                ? "text-ink-400 hover:bg-paper-200 hover:text-ink-600"
+                : "text-ink-300 opacity-50"
+            )}
+            title={hasGitHubToken ? "Import from GitHub" : "Add GitHub token in settings"}
           >
             <Github size={18} />
           </button>
 
-          {/* Microphone button - coming soon */}
+          {/* Microphone button */}
           <button
-            disabled
-            className="cursor-not-allowed rounded-md p-1.5 text-ink-300 opacity-50"
-            title="Voice input (coming soon)"
+            onClick={toggleVoiceRecording}
+            disabled={isProcessing}
+            className={cn(
+              "rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              isRecording
+                ? "bg-red-100 text-red-500 hover:bg-red-200"
+                : "text-ink-400 hover:bg-paper-200 hover:text-ink-600"
+            )}
+            title={isRecording ? "Stop recording" : "Voice input"}
           >
-            <Mic size={18} />
+            {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
 
           {/* Stop/Send button */}
@@ -238,6 +351,13 @@ export function MessageInput({
           <span>to send</span>
         </div>
       </div>
+
+      {/* GitHub Import Modal */}
+      <GitHubImportModal
+        isOpen={showGitHubModal}
+        onClose={() => setShowGitHubModal(false)}
+        onImport={handleGitHubImport}
+      />
     </div>
   );
 }

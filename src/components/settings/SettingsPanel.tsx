@@ -11,6 +11,7 @@ import {
   Palette,
   Sliders,
   Check,
+  Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore, type ThemeMode } from "@/store";
@@ -31,6 +32,7 @@ const models = [
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showGithubToken, setShowGithubToken] = useState(false);
   const { settings, updateSettings } = useAppStore();
 
   const tabs = [
@@ -132,6 +134,32 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       placeholder="/path/to/project"
                       className="w-full rounded-lg border border-ink-200 px-4 py-2.5 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-terminal-blue focus:outline-none focus:ring-2 focus:ring-terminal-blue/20"
                     />
+                  </div>
+
+                  {/* GitHub Token */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+                      <Github size={16} />
+                      GitHub Token (Optional)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showGithubToken ? "text" : "password"}
+                        value={settings.githubToken}
+                        onChange={(e) => updateSettings({ githubToken: e.target.value })}
+                        placeholder="ghp_..."
+                        className="w-full rounded-lg border border-ink-200 px-4 py-2.5 pr-10 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-terminal-blue focus:outline-none focus:ring-2 focus:ring-terminal-blue/20"
+                      />
+                      <button
+                        onClick={() => setShowGithubToken(!showGithubToken)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
+                      >
+                        {showGithubToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-ink-400">
+                      Personal Access Token for importing from GitHub repos, issues, and PRs.
+                    </p>
                   </div>
                 </div>
               )}
