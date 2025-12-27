@@ -100,16 +100,17 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button className="rounded p-1 text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-300">
+        {/* Decorative window controls */}
+        <div className="flex items-center gap-1" aria-hidden="true">
+          <div className="rounded p-1 text-ink-600">
             <Minimize2 size={14} />
-          </button>
-          <button className="rounded p-1 text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-300">
+          </div>
+          <div className="rounded p-1 text-ink-600">
             <Maximize2 size={14} />
-          </button>
-          <button className="rounded p-1 text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-300">
+          </div>
+          <div className="rounded p-1 text-ink-600">
             <X size={14} />
-          </button>
+          </div>
         </div>
       </header>
 

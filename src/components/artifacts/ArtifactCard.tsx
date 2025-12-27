@@ -71,9 +71,13 @@ export function ArtifactCard({
   };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(artifact.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(artifact.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access denied or unavailable
+    }
   };
 
   const handleDownload = () => {

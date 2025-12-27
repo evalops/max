@@ -87,17 +87,25 @@ export function ToolRunCard({ run, isCompact = false }: ToolRunCardProps) {
 
   const handleCopyArgs = async () => {
     if (run.args) {
-      await navigator.clipboard.writeText(JSON.stringify(run.args, null, 2));
-      setCopiedArgs(true);
-      setTimeout(() => setCopiedArgs(false), 2000);
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(run.args, null, 2));
+        setCopiedArgs(true);
+        setTimeout(() => setCopiedArgs(false), 2000);
+      } catch {
+        // Clipboard access denied or unavailable
+      }
     }
   };
 
   const handleCopyOutput = async () => {
     if (run.output) {
-      await navigator.clipboard.writeText(run.output);
-      setCopiedOutput(true);
-      setTimeout(() => setCopiedOutput(false), 2000);
+      try {
+        await navigator.clipboard.writeText(run.output);
+        setCopiedOutput(true);
+        setTimeout(() => setCopiedOutput(false), 2000);
+      } catch {
+        // Clipboard access denied or unavailable
+      }
     }
   };
 

@@ -30,10 +30,14 @@ export function ActivityItem({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = `${activity.title}${activity.description ? `: ${activity.description}` : ""}`;
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const text = `${activity.title}${activity.description ? `: ${activity.description}` : ""}`;
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access denied or unavailable
+    }
   };
 
   return (

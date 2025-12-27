@@ -65,10 +65,14 @@ export function ActivityPanel({
   });
 
   const handleCopyTranscript = async () => {
-    const transcript = activities
-      .map((a) => `[${a.type}] ${a.title}${a.description ? `: ${a.description}` : ""}`)
-      .join("\n");
-    await navigator.clipboard.writeText(transcript);
+    try {
+      const transcript = activities
+        .map((a) => `[${a.type}] ${a.title}${a.description ? `: ${a.description}` : ""}`)
+        .join("\n");
+      await navigator.clipboard.writeText(transcript);
+    } catch {
+      // Clipboard access denied or unavailable
+    }
   };
 
   const handleClearAll = () => {
@@ -90,7 +94,10 @@ export function ActivityPanel({
           <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-500">
             {version}
           </span>
-          <button className="ml-1 text-ink-400 hover:text-ink-600">
+          <button
+            className="ml-1 text-ink-400 hover:text-ink-600"
+            aria-label="Agent options"
+          >
             <ChevronDown size={14} />
           </button>
         </div>
@@ -131,6 +138,7 @@ export function ActivityPanel({
             <button
               className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-paper-300 hover:text-ink-600"
               title="More options"
+              aria-label="More options"
             >
               <MoreHorizontal size={16} />
             </button>
@@ -148,13 +156,15 @@ export function ActivityPanel({
             <button
               onClick={() => expandAll(allActivityIds)}
               className="text-xs text-ink-500 hover:text-ink-700"
+              aria-label="Expand all activities"
             >
               Expand all
             </button>
-            <span className="text-ink-300">·</span>
+            <span className="text-ink-300" aria-hidden="true">·</span>
             <button
               onClick={() => collapseAll()}
               className="text-xs text-ink-500 hover:text-ink-700"
+              aria-label="Collapse all activities"
             >
               Collapse all
             </button>
