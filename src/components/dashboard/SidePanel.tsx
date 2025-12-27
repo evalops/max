@@ -8,13 +8,15 @@ import {
   DollarSign,
   PanelRightClose,
   PanelRightOpen,
+  Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ArtifactsPanel } from "@/components/artifacts";
 import { ToolRunsPanel } from "@/components/toolruns";
 import { CostPanel } from "@/components/cost";
+import { GitHubPanel } from "@/components/github/GitHubPanel";
 
-type TabId = "artifacts" | "toolruns" | "cost";
+type TabId = "artifacts" | "toolruns" | "cost" | "github";
 
 interface Tab {
   id: TabId;
@@ -26,6 +28,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: "artifacts", label: "Artifacts", icon: Package, color: "text-terminal-purple" },
   { id: "toolruns", label: "Tools", icon: Wrench, color: "text-terminal-amber" },
+  { id: "github", label: "GitHub", icon: Github, color: "text-terminal-cyan" },
   { id: "cost", label: "Cost", icon: DollarSign, color: "text-terminal-green" },
 ];
 
@@ -44,6 +47,8 @@ export function SidePanel({ isOpen, onToggle, defaultTab = "artifacts" }: SidePa
         return <ArtifactsPanel />;
       case "toolruns":
         return <ToolRunsPanel />;
+      case "github":
+        return <GitHubPanel />;
       case "cost":
         return <CostPanel />;
     }
