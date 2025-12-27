@@ -32,6 +32,7 @@ interface Settings {
   autoScroll: boolean;
   showTimestamps: boolean;
   compactMode: boolean;
+  voiceLanguage: string;
 }
 
 interface AgentSession {
@@ -124,6 +125,7 @@ const defaultSettings: Settings = {
   autoScroll: true,
   showTimestamps: true,
   compactMode: false,
+  voiceLanguage: "en-US",
 };
 
 const defaultSession: AgentSession = {

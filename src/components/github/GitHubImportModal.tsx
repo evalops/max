@@ -21,7 +21,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGitHub, type GitHubRepo, type GitHubIssue, type GitHubPR, type GitHubFile } from "@/hooks/useGitHub";
+import { useGitHub, type GitHubRepo, type GitHubIssue, type GitHubPR, type GitHubFile, type GitHubBranch } from "@/hooks/useGitHub";
 
 interface GitHubImportModalProps {
   isOpen: boolean;
@@ -70,6 +70,7 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
     getPRDiff,
     getDirectoryContents,
     getFileContent,
+    getBranches,
   } = useGitHub();
 
   const [view, setView] = useState<View>("repos");
@@ -88,6 +89,7 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
   const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const [branches, setBranches] = useState<GitHubBranch[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 
   const loadRepos = useCallback(async () => {
@@ -117,12 +119,14 @@ export function GitHubImportModal({ isOpen, onClose, onImport }: GitHubImportMod
     setView("repo-detail");
 
     const [owner, name] = repo.full_name.split("/");
-    const [issuesData, prsData] = await Promise.all([
+    const [issuesData, prsData, branchesData] = await Promise.all([
       getIssues(owner, name),
       getPRs(owner, name),
+      getBranches(owner, name),
     ]);
     setIssues(issuesData);
     setPrs(prsData);
+    setBranches(branchesData);
   };
 
   const handleSelectIssue = async (issue: GitHubIssue) => {
@@ -292,6 +296,7 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
         setSelectedRepo(null);
         setIssues([]);
         setPrs([]);
+        setBranches([]);
         setSelectedBranch("");
         break;
       case "issue-detail":
@@ -331,6 +336,7 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
     setSelectedFile(null);
     setFileContent(null);
     setSelectedBranch("");
+    setBranches([]);
     setSelectedFiles(new Set());
   }, []);
 
@@ -491,9 +497,18 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                       </a>
                       <div className="flex items-center gap-2">
                         <GitBranch size={14} className="text-ink-400" />
-                        <span className="rounded bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
-                          {selectedBranch}
-                        </span>
+                        <select
+                          value={selectedBranch}
+                          onChange={(e) => setSelectedBranch(e.target.value)}
+                          className="rounded bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600 focus:outline-none focus:ring-1 focus:ring-terminal-blue"
+                        >
+                          {branches.map((branch) => (
+                            <option key={branch.name} value={branch.name}>
+                              {branch.name}
+                              {branch.protected ? " 🔒" : ""}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 

@@ -12,6 +12,7 @@ import {
   Sliders,
   Check,
   Github,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore, type ThemeMode } from "@/store";
@@ -27,6 +28,21 @@ const models = [
   { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", description: "Fast, balanced" },
   { id: "claude-opus-4-5-20251101", name: "Claude Opus 4.5", description: "Most capable" },
   { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", description: "Quick tasks" },
+];
+
+const voiceLanguages = [
+  { id: "en-US", name: "English (US)" },
+  { id: "en-GB", name: "English (UK)" },
+  { id: "es-ES", name: "Spanish (Spain)" },
+  { id: "es-MX", name: "Spanish (Mexico)" },
+  { id: "fr-FR", name: "French" },
+  { id: "de-DE", name: "German" },
+  { id: "it-IT", name: "Italian" },
+  { id: "pt-BR", name: "Portuguese (Brazil)" },
+  { id: "ja-JP", name: "Japanese" },
+  { id: "ko-KR", name: "Korean" },
+  { id: "zh-CN", name: "Chinese (Simplified)" },
+  { id: "zh-TW", name: "Chinese (Traditional)" },
 ];
 
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
@@ -159,6 +175,28 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     </div>
                     <p className="text-xs text-ink-400">
                       Personal Access Token for importing from GitHub repos, issues, and PRs.
+                    </p>
+                  </div>
+
+                  {/* Voice Language */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+                      <Mic size={16} />
+                      Voice Input Language
+                    </label>
+                    <select
+                      value={settings.voiceLanguage}
+                      onChange={(e) => updateSettings({ voiceLanguage: e.target.value })}
+                      className="w-full rounded-lg border border-ink-200 px-4 py-2.5 text-sm text-ink-800 focus:border-terminal-blue focus:outline-none focus:ring-2 focus:ring-terminal-blue/20"
+                    >
+                      {voiceLanguages.map((lang) => (
+                        <option key={lang.id} value={lang.id}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-ink-400">
+                      Language for speech-to-text when using voice input.
                     </p>
                   </div>
                 </div>

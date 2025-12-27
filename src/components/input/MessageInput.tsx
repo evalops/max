@@ -75,7 +75,6 @@ export function MessageInput({
   const [isRecording, setIsRecording] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const voiceLanguage = "en-US"; // Could be made configurable in settings
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -307,7 +306,7 @@ export function MessageInput({
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = voiceLanguage;
+    recognition.lang = settings.voiceLanguage;
 
     let finalTranscript = message; // Start with existing message
 
@@ -339,7 +338,7 @@ export function MessageInput({
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isRecording, message, voiceLanguage]);
+  }, [isRecording, message, settings.voiceLanguage]);
 
   // Cleanup speech recognition on unmount
   useEffect(() => {
@@ -406,30 +405,52 @@ export function MessageInput({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   className={cn(
-                    "group flex items-center gap-2 rounded-lg border px-3 py-1.5",
+                    "group relative flex items-center gap-2 rounded-lg border",
                     att.type === "image"
-                      ? "border-terminal-purple/30 bg-terminal-purple/5"
+                      ? "border-terminal-purple/30 bg-terminal-purple/5 p-1"
                       : att.type === "github"
-                      ? "border-ink-300 bg-ink-50"
-                      : "border-terminal-green/30 bg-terminal-green/5"
+                      ? "border-ink-300 bg-ink-50 px-3 py-1.5"
+                      : "border-terminal-green/30 bg-terminal-green/5 px-3 py-1.5"
                   )}
                 >
-                  <span className={cn(
-                    att.type === "image" ? "text-terminal-purple"
-                    : att.type === "github" ? "text-ink-600"
-                    : "text-terminal-green"
-                  )}>
-                    {getAttachmentIcon(att)}
-                  </span>
-                  <span className="max-w-32 truncate text-xs font-medium text-ink-700">
-                    {att.name}
-                  </span>
-                  <span className="text-xs text-ink-400">
-                    {formatFileSize(att.size)}
-                  </span>
+                  {att.type === "image" ? (
+                    <>
+                      {/* Image thumbnail */}
+                      <img
+                        src={att.content}
+                        alt={att.name}
+                        className="size-12 rounded object-cover"
+                      />
+                      <div className="flex flex-col gap-0.5 pr-6">
+                        <span className="max-w-24 truncate text-xs font-medium text-ink-700">
+                          {att.name}
+                        </span>
+                        <span className="text-[10px] text-ink-400">
+                          {formatFileSize(att.size)}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className={cn(
+                        att.type === "github" ? "text-ink-600" : "text-terminal-green"
+                      )}>
+                        {getAttachmentIcon(att)}
+                      </span>
+                      <span className="max-w-32 truncate text-xs font-medium text-ink-700">
+                        {att.name}
+                      </span>
+                      <span className="text-xs text-ink-400">
+                        {formatFileSize(att.size)}
+                      </span>
+                    </>
+                  )}
                   <button
                     onClick={() => removeAttachment(att.id)}
-                    className="rounded p-0.5 text-ink-400 opacity-0 transition-all hover:bg-ink-200 hover:text-ink-600 group-hover:opacity-100"
+                    className={cn(
+                      "rounded p-0.5 text-ink-400 opacity-0 transition-all hover:bg-ink-200 hover:text-ink-600 group-hover:opacity-100",
+                      att.type === "image" && "absolute right-1 top-1 bg-white/80"
+                    )}
                   >
                     <X size={12} />
                   </button>

@@ -59,6 +59,14 @@ export interface GitHubFile {
   encoding?: string;
 }
 
+export interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+  };
+  protected: boolean;
+}
+
 export interface GitHubError {
   message: string;
   status: number;
@@ -292,6 +300,25 @@ export function useGitHub() {
     [fetchGitHub]
   );
 
+  const getBranches = useCallback(
+    async (owner: string, repo: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const branches = await fetchGitHub<GitHubBranch[]>(
+          `/repos/${owner}/${repo}/branches?per_page=100`
+        );
+        return branches;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch branches");
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchGitHub]
+  );
+
   const parseGitHubUrl = useCallback((url: string) => {
     // Parse URLs like:
     // https://github.com/owner/repo
@@ -328,6 +355,7 @@ export function useGitHub() {
     getPRDiff,
     getFileContent,
     getDirectoryContents,
+    getBranches,
     parseGitHubUrl,
   };
 }
