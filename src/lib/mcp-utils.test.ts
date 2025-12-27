@@ -2,7 +2,6 @@
  * Tests for MCP Utilities
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import fs from "fs/promises";
 import {
   generatePythonLibrary,
   RESEARCH_PYTHON_TOOLS,
@@ -11,12 +10,27 @@ import {
   DATA_PYTHON_TOOLS,
 } from "./mcp-utils";
 
+// Define mock functions using vi.hoisted() so they're available when vi.mock runs
+const { mockMkdir, mockWriteFile } = vi.hoisted(() => ({
+  mockMkdir: vi.fn(),
+  mockWriteFile: vi.fn(),
+}));
+
 // Mock fs module for testing
-vi.mock("fs/promises");
+vi.mock("fs/promises", () => ({
+  default: {
+    mkdir: mockMkdir,
+    writeFile: mockWriteFile,
+  },
+  mkdir: mockMkdir,
+  writeFile: mockWriteFile,
+}));
 
 describe("mcp-utils", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMkdir.mockResolvedValue(undefined);
+    mockWriteFile.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -166,9 +180,6 @@ describe("mcp-utils", () => {
 
   describe("generatePythonLibrary", () => {
     it("should create directory and write file", async () => {
-      const mockMkdir = vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      const mockWriteFile = vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-
       await generatePythonLibrary(RESEARCH_PYTHON_TOOLS, "/tmp/test/lib.py");
 
       expect(mockMkdir).toHaveBeenCalledWith("/tmp/test", { recursive: true });
@@ -177,9 +188,8 @@ describe("mcp-utils", () => {
 
     it("should include header with dependencies", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary(RESEARCH_PYTHON_TOOLS, "/tmp/test/lib.py");
@@ -191,9 +201,8 @@ describe("mcp-utils", () => {
 
     it("should include all tool functions", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary(RESEARCH_PYTHON_TOOLS, "/tmp/test/lib.py");
@@ -205,9 +214,8 @@ describe("mcp-utils", () => {
 
     it("should include utility functions", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary(RESEARCH_PYTHON_TOOLS, "/tmp/test/lib.py");
@@ -223,9 +231,8 @@ describe("mcp-utils", () => {
 
     it("should include caching utilities", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary(RESEARCH_PYTHON_TOOLS, "/tmp/test/lib.py");
@@ -237,9 +244,8 @@ describe("mcp-utils", () => {
 
     it("should handle empty tools array", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary([], "/tmp/test/lib.py");
@@ -251,9 +257,8 @@ describe("mcp-utils", () => {
 
     it("should collect all dependencies", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       const toolsWithDeps = [
@@ -266,9 +271,8 @@ describe("mcp-utils", () => {
 
     it("should generate valid Python syntax", async () => {
       let writtenContent = "";
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-      vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
-        writtenContent = content as string;
+      mockWriteFile.mockImplementation(async (_path: string, content: string) => {
+        writtenContent = content;
       });
 
       await generatePythonLibrary(

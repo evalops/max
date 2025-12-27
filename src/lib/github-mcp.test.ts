@@ -2,15 +2,34 @@
  * Tests for GitHub MCP Server
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import fs from "fs/promises";
+
+// Define mock functions using vi.hoisted() so they're available when vi.mock runs
+const { mockMkdir, mockWriteFile, mockAccess, mockExec, mockPromisify } = vi.hoisted(() => ({
+  mockMkdir: vi.fn(),
+  mockWriteFile: vi.fn(),
+  mockAccess: vi.fn(),
+  mockExec: vi.fn(),
+  mockPromisify: vi.fn(() => vi.fn()),
+}));
 
 // Mock modules
-vi.mock("fs/promises");
+vi.mock("fs/promises", () => ({
+  default: {
+    mkdir: mockMkdir,
+    writeFile: mockWriteFile,
+    access: mockAccess,
+  },
+  mkdir: mockMkdir,
+  writeFile: mockWriteFile,
+  access: mockAccess,
+}));
 vi.mock("child_process", () => ({
-  exec: vi.fn(),
+  default: { exec: mockExec },
+  exec: mockExec,
 }));
 vi.mock("util", () => ({
-  promisify: vi.fn(() => vi.fn()),
+  default: { promisify: mockPromisify },
+  promisify: mockPromisify,
 }));
 
 // Mock fetch globally
@@ -46,9 +65,9 @@ describe("github-mcp", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-    vi.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
+    mockMkdir.mockResolvedValue(undefined);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockAccess.mockRejectedValue(new Error("ENOENT"));
   });
 
   afterEach(() => {

@@ -3,12 +3,17 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Create mock functions
-const mockMkdir = vi.fn().mockResolvedValue(undefined);
-const mockWriteFile = vi.fn().mockResolvedValue(undefined);
-const mockReadFile = vi.fn().mockResolvedValue("");
-const mockReaddir = vi.fn().mockResolvedValue([]);
-const mockStat = vi.fn().mockResolvedValue({ isFile: () => true });
+// Define mock functions using vi.hoisted() so they're available when vi.mock runs
+const { mockMkdir, mockWriteFile, mockReadFile, mockReaddir, mockStat, mockExec, mockPromisify } =
+  vi.hoisted(() => ({
+    mockMkdir: vi.fn(),
+    mockWriteFile: vi.fn(),
+    mockReadFile: vi.fn(),
+    mockReaddir: vi.fn(),
+    mockStat: vi.fn(),
+    mockExec: vi.fn(),
+    mockPromisify: vi.fn(() => vi.fn()),
+  }));
 
 // Mock modules before importing
 vi.mock("fs/promises", () => ({
@@ -26,14 +31,13 @@ vi.mock("fs/promises", () => ({
   stat: mockStat,
 }));
 vi.mock("child_process", () => ({
-  exec: vi.fn(),
+  default: { exec: mockExec },
+  exec: mockExec,
 }));
 vi.mock("util", () => ({
-  promisify: vi.fn(() => vi.fn()),
+  default: { promisify: mockPromisify },
+  promisify: mockPromisify,
 }));
-
-// Import fs after mocking
-import fs from "fs/promises";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -142,8 +146,8 @@ describe("research-mcp", () => {
           ],
         });
 
-        expect(fs.mkdir).toHaveBeenCalled();
-        expect(fs.writeFile).toHaveBeenCalled();
+        expect(mockMkdir).toHaveBeenCalled();
+        expect(mockWriteFile).toHaveBeenCalled();
         expect(result.content[0].text).toContain("Created notebook");
         expect(result.content[0].text).toContain("2 cells added");
       });
@@ -187,7 +191,7 @@ describe("research-mcp", () => {
       };
 
       beforeEach(() => {
-        vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(sampleNotebook));
+        mockReadFile.mockResolvedValue(JSON.stringify(sampleNotebook));
       });
 
       it("should read notebook contents", async () => {
@@ -248,7 +252,7 @@ describe("research-mcp", () => {
       };
 
       beforeEach(() => {
-        vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(sampleNotebook));
+        mockReadFile.mockResolvedValue(JSON.stringify(sampleNotebook));
       });
 
       it("should provide notebook summary", async () => {
@@ -292,12 +296,12 @@ describe("research-mcp", () => {
       };
 
       beforeEach(() => {
-        vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(existingNotebook));
+        mockReadFile.mockResolvedValue(JSON.stringify(existingNotebook));
       });
 
       it("should add cells at end by default", async () => {
         let writtenContent = "";
-        vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
+        mockWriteFile.mockImplementation(async (_path, content) => {
           writtenContent = content as string;
         });
 
@@ -314,7 +318,7 @@ describe("research-mcp", () => {
 
       it("should add cells at start when specified", async () => {
         let writtenContent = "";
-        vi.mocked(fs.writeFile).mockImplementation(async (_path, content) => {
+        mockWriteFile.mockImplementation(async (_path, content) => {
           writtenContent = content as string;
         });
 
@@ -335,7 +339,7 @@ describe("research-mcp", () => {
 
     describe("error handling", () => {
       it("should handle file not found", async () => {
-        vi.mocked(fs.readFile).mockRejectedValue(new Error("ENOENT: file not found"));
+        mockReadFile.mockRejectedValue(new Error("ENOENT: file not found"));
 
         const result = await notebookHandler({
           action: "read",
@@ -347,7 +351,7 @@ describe("research-mcp", () => {
       });
 
       it("should handle invalid JSON", async () => {
-        vi.mocked(fs.readFile).mockResolvedValue("not valid json");
+        mockReadFile.mockResolvedValue("not valid json");
 
         const result = await notebookHandler({
           action: "read",
@@ -511,7 +515,7 @@ describe("research-mcp", () => {
           outputPath: "paper.pdf",
         });
 
-        expect(fs.writeFile).toHaveBeenCalled();
+        expect(mockWriteFile).toHaveBeenCalled();
         expect(result.content[0].text).toContain("Downloaded");
         expect(result.content[0].text).toContain("paper.pdf");
       });
@@ -656,8 +660,8 @@ describe("research-mcp", () => {
           notebookPath: "review.ipynb",
         });
 
-        expect(fs.writeFile).toHaveBeenCalled();
-        const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
+        expect(mockWriteFile).toHaveBeenCalled();
+        const writeCall = mockWriteFile.mock.calls[0];
         expect(writeCall[0]).toContain("review.ipynb");
       });
 
@@ -714,18 +718,23 @@ describe("research-mcp", () => {
 
     beforeEach(async () => {
       // Setup exec mock
-      const { exec } = await import("child_process");
       mockExecAsync = vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
-      vi.mocked(exec).mockImplementation((_cmd, _opts, callback) => {
-        if (callback) {
-          callback(null, "", "");
+      mockExec.mockImplementation(
+        (
+          _cmd: string,
+          _opts: unknown,
+          callback?: (err: Error | null, stdout: string, stderr: string) => void
+        ) => {
+          if (callback) {
+            callback(null, "", "");
+          }
+          return {} as unknown;
         }
-        return {} as ReturnType<typeof exec>;
-      });
+      );
 
       // Re-mock promisify to return our mock
-      const { promisify } = await import("util");
-      vi.mocked(promisify).mockReturnValue(mockExecAsync);
+      // @ts-expect-error - Mock type complexity with promisify
+      mockPromisify.mockReturnValue(mockExecAsync);
 
       // Need to re-import to get fresh module with new mocks
       vi.resetModules();
