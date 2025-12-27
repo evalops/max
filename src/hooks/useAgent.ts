@@ -16,7 +16,7 @@ const toolToActivityType: Record<string, ActivityType> = {
   Task: "thinking",
   WebSearch: "github",
   WebFetch: "github",
-  // GitHub MCP tools
+  // GitHub MCP tools - Read operations
   github_search_code: "github",
   github_read_file: "file_read",
   github_list_files: "file_read",
@@ -26,6 +26,19 @@ const toolToActivityType: Record<string, ActivityType> = {
   github_get_pr: "github",
   github_clone_repo: "command",
   github_repo_info: "github",
+  github_compare: "github",
+  github_actions: "github",
+  github_file_history: "file_read",
+  github_notifications: "github",
+  // GitHub MCP tools - Write operations
+  github_create_issue: "github",
+  github_add_comment: "github",
+  github_create_branch: "github",
+  github_create_pr: "github",
+  github_merge_pr: "github",
+  github_update_issue: "github",
+  github_star: "github",
+  github_fork: "github",
 };
 
 // Infer artifact kind from file extension

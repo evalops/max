@@ -45,6 +45,13 @@ interface AgentSession {
   turnCount: number;
 }
 
+interface GitHubContext {
+  currentRepo: string | null; // owner/repo format
+  currentBranch: string | null;
+  recentRepos: string[]; // Recently used repos for quick switching
+  autoDetected: boolean; // Whether the repo was auto-detected from git remote
+}
+
 interface AppState {
   // Settings
   settings: Settings;
@@ -104,6 +111,13 @@ interface AppState {
   getTotalCost: () => number;
   clearCostTimeline: () => void;
 
+  // GitHub Context
+  githubContext: GitHubContext;
+  setGitHubContext: (context: Partial<GitHubContext>) => void;
+  setCurrentRepo: (repo: string | null, autoDetected?: boolean) => void;
+  addRecentRepo: (repo: string) => void;
+  clearGitHubContext: () => void;
+
   // Data helpers
   clearAllData: () => void;
 }
@@ -142,6 +156,15 @@ const defaultToolRunFilter: ToolRunFilterState = {
   query: "",
   status: "all",
 };
+
+const defaultGitHubContext: GitHubContext = {
+  currentRepo: null,
+  currentBranch: null,
+  recentRepos: [],
+  autoDetected: false,
+};
+
+const MAX_RECENT_REPOS = 10;
 
 const MAX_TOOL_RUNS = 100;
 const MAX_COST_ENTRIES = 200;
@@ -354,6 +377,35 @@ export const useAppStore = create<AppState>()(
         return costTimeline.reduce((sum, e) => sum + e.cost.total, 0);
       },
       clearCostTimeline: () => set({ costTimeline: [] }),
+
+      // GitHub Context
+      githubContext: defaultGitHubContext,
+      setGitHubContext: (context) =>
+        set((state) => ({
+          githubContext: { ...state.githubContext, ...context },
+        })),
+      setCurrentRepo: (repo, autoDetected = false) =>
+        set((state) => {
+          const newRecentRepos = repo
+            ? [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(0, MAX_RECENT_REPOS)
+            : state.githubContext.recentRepos;
+          return {
+            githubContext: {
+              ...state.githubContext,
+              currentRepo: repo,
+              autoDetected,
+              recentRepos: newRecentRepos,
+            },
+          };
+        }),
+      addRecentRepo: (repo) =>
+        set((state) => ({
+          githubContext: {
+            ...state.githubContext,
+            recentRepos: [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(0, MAX_RECENT_REPOS),
+          },
+        })),
+      clearGitHubContext: () => set({ githubContext: defaultGitHubContext }),
 
       // Data helpers
       clearAllData: () =>

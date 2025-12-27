@@ -1450,6 +1450,846 @@ ${r.description || "_No description_"}
   }
 );
 
+// ============================================================================
+// WRITE OPERATIONS
+// ============================================================================
+
+// Tool: Create issue
+const createIssueTool = tool(
+  "github_create_issue",
+  `Create a new issue in a GitHub repository.
+
+Use this to report bugs, request features, or start discussions.
+
+Examples:
+- Simple issue: {repo: "owner/repo", title: "Bug: Login fails"}
+- With body: {repo: "owner/repo", title: "Feature request", body: "Add dark mode support"}
+- With labels: {repo: "owner/repo", title: "Bug", labels: ["bug", "priority-high"]}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    title: z.string().describe("Issue title"),
+    body: z.string().optional().describe("Issue body (markdown supported)"),
+    labels: z.array(z.string()).optional().describe("Labels to apply"),
+    assignees: z.array(z.string()).optional().describe("Usernames to assign"),
+    milestone: z.number().optional().describe("Milestone number to associate"),
+  },
+  async (args, extra) => {
+    const { repo, title, body, labels, assignees, milestone } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const payload: Record<string, unknown> = { title };
+    if (body) payload.body = body;
+    if (labels?.length) payload.labels = labels;
+    if (assignees?.length) payload.assignees = assignees;
+    if (milestone) payload.milestone = milestone;
+
+    const response = await githubFetch(`/repos/${repo}/issues`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to create issue: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const issue = await response.json();
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Created issue #${issue.number}: ${issue.title}\n\n**URL:** ${issue.html_url}`
+      }],
+    };
+  }
+);
+
+// Tool: Add comment
+const addCommentTool = tool(
+  "github_add_comment",
+  `Add a comment to an issue or pull request.
+
+Use this to respond to issues, provide feedback on PRs, or continue discussions.
+
+Examples:
+- Comment on issue: {repo: "owner/repo", number: 123, body: "Thanks for reporting!"}
+- Comment on PR: {repo: "owner/repo", number: 456, body: "LGTM! 👍"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    number: z.number().describe("Issue or PR number"),
+    body: z.string().describe("Comment body (markdown supported)"),
+  },
+  async (args, extra) => {
+    const { repo, number, body } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const response = await githubFetch(`/repos/${repo}/issues/${number}/comments`, token, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to add comment: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const comment = await response.json();
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Added comment to #${number}\n\n**URL:** ${comment.html_url}`
+      }],
+    };
+  }
+);
+
+// Tool: Create branch
+const createBranchTool = tool(
+  "github_create_branch",
+  `Create a new branch in a GitHub repository.
+
+Use this to start working on a new feature or fix.
+
+Examples:
+- From default branch: {repo: "owner/repo", branch: "feature/new-login"}
+- From specific branch: {repo: "owner/repo", branch: "fix/bug-123", from: "develop"}
+- From commit: {repo: "owner/repo", branch: "hotfix", from: "abc1234"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    branch: z.string().describe("New branch name"),
+    from: z.string().optional().describe("Source branch or commit SHA (defaults to default branch)"),
+  },
+  async (args, extra) => {
+    const { repo, branch, from } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    // Get the SHA to branch from
+    let sha: string;
+    if (from && from.match(/^[a-f0-9]{40}$/i)) {
+      // It's already a SHA
+      sha = from;
+    } else {
+      // Get SHA from branch
+      const refName = from || "HEAD";
+      const refResponse = await githubFetch(`/repos/${repo}/git/ref/heads/${refName === "HEAD" ? "" : refName}`, token);
+
+      if (refName === "HEAD" || !refResponse.ok) {
+        // Get default branch
+        const repoResponse = await githubFetch(`/repos/${repo}`, token);
+        if (!repoResponse.ok) {
+          return {
+            content: [{ type: "text", text: "Failed to get repository info" }],
+            isError: true,
+          };
+        }
+        const repoData = await repoResponse.json();
+        const defaultBranch = repoData.default_branch;
+
+        const defaultRefResponse = await githubFetch(`/repos/${repo}/git/ref/heads/${defaultBranch}`, token);
+        if (!defaultRefResponse.ok) {
+          return {
+            content: [{ type: "text", text: "Failed to get default branch reference" }],
+            isError: true,
+          };
+        }
+        const defaultRef = await defaultRefResponse.json();
+        sha = defaultRef.object.sha;
+      } else {
+        const ref = await refResponse.json();
+        sha = ref.object.sha;
+      }
+    }
+
+    // Create the new branch
+    const response = await githubFetch(`/repos/${repo}/git/refs`, token, {
+      method: "POST",
+      body: JSON.stringify({
+        ref: `refs/heads/${branch}`,
+        sha,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to create branch: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Created branch \`${branch}\` from ${from || "default branch"}\n\n**SHA:** ${sha.substring(0, 7)}`
+      }],
+    };
+  }
+);
+
+// Tool: Create PR
+const createPRTool = tool(
+  "github_create_pr",
+  `Create a new pull request.
+
+Use this to propose changes from one branch to another.
+
+Examples:
+- Simple PR: {repo: "owner/repo", title: "Add login feature", head: "feature/login", base: "main"}
+- Draft PR: {repo: "owner/repo", title: "WIP: New feature", head: "feature/x", base: "main", draft: true}
+- With body: {repo: "owner/repo", title: "Fix bug", head: "fix/123", base: "main", body: "Fixes #123"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    title: z.string().describe("PR title"),
+    head: z.string().describe("Branch containing changes (or user:branch for cross-repo)"),
+    base: z.string().describe("Branch to merge into"),
+    body: z.string().optional().describe("PR description (markdown supported)"),
+    draft: z.boolean().default(false).optional().describe("Create as draft PR"),
+    maintainerCanModify: z.boolean().default(true).optional().describe("Allow maintainers to edit"),
+  },
+  async (args, extra) => {
+    const { repo, title, head, base, body, draft = false, maintainerCanModify = true } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const payload: Record<string, unknown> = {
+      title,
+      head,
+      base,
+      draft,
+      maintainer_can_modify: maintainerCanModify,
+    };
+    if (body) payload.body = body;
+
+    const response = await githubFetch(`/repos/${repo}/pulls`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to create PR: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const pr = await response.json();
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Created PR #${pr.number}: ${pr.title}${draft ? " (Draft)" : ""}\n\n**Branch:** ${head} → ${base}\n**URL:** ${pr.html_url}`
+      }],
+    };
+  }
+);
+
+// Tool: Merge PR
+const mergePRTool = tool(
+  "github_merge_pr",
+  `Merge a pull request.
+
+Use this to merge approved PRs into the target branch.
+
+Examples:
+- Simple merge: {repo: "owner/repo", number: 123}
+- Squash merge: {repo: "owner/repo", number: 123, mergeMethod: "squash"}
+- With message: {repo: "owner/repo", number: 123, commitMessage: "Feature complete"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    number: z.number().describe("PR number"),
+    commitTitle: z.string().optional().describe("Custom merge commit title"),
+    commitMessage: z.string().optional().describe("Custom merge commit message"),
+    mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge").optional(),
+  },
+  async (args, extra) => {
+    const { repo, number, commitTitle, commitMessage, mergeMethod = "merge" } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    // First check PR status
+    const prResponse = await githubFetch(`/repos/${repo}/pulls/${number}`, token);
+    if (!prResponse.ok) {
+      return {
+        content: [{ type: "text", text: "Failed to get PR details" }],
+        isError: true,
+      };
+    }
+
+    const pr = await prResponse.json();
+    if (pr.state !== "open") {
+      return {
+        content: [{ type: "text", text: `PR #${number} is already ${pr.merged ? "merged" : "closed"}` }],
+        isError: true,
+      };
+    }
+
+    if (pr.mergeable === false) {
+      return {
+        content: [{ type: "text", text: `PR #${number} has merge conflicts that must be resolved first` }],
+        isError: true,
+      };
+    }
+
+    const payload: Record<string, unknown> = { merge_method: mergeMethod };
+    if (commitTitle) payload.commit_title = commitTitle;
+    if (commitMessage) payload.commit_message = commitMessage;
+
+    const response = await githubFetch(`/repos/${repo}/pulls/${number}/merge`, token, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to merge PR: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const result = await response.json();
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Merged PR #${number} using ${mergeMethod}\n\n**SHA:** ${result.sha?.substring(0, 7)}\n**Message:** ${result.message}`
+      }],
+    };
+  }
+);
+
+// Tool: Update issue/PR
+const updateIssueTool = tool(
+  "github_update_issue",
+  `Update an existing issue or pull request.
+
+Use this to change title, body, state, labels, or assignees.
+
+Examples:
+- Close issue: {repo: "owner/repo", number: 123, state: "closed"}
+- Add labels: {repo: "owner/repo", number: 123, labels: ["bug", "confirmed"]}
+- Update title: {repo: "owner/repo", number: 123, title: "New title"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    number: z.number().describe("Issue or PR number"),
+    title: z.string().optional().describe("New title"),
+    body: z.string().optional().describe("New body"),
+    state: z.enum(["open", "closed"]).optional().describe("New state"),
+    labels: z.array(z.string()).optional().describe("Labels to set (replaces existing)"),
+    assignees: z.array(z.string()).optional().describe("Assignees to set (replaces existing)"),
+    milestone: z.number().nullable().optional().describe("Milestone number (null to remove)"),
+  },
+  async (args, extra) => {
+    const { repo, number, title, body, state, labels, assignees, milestone } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const payload: Record<string, unknown> = {};
+    if (title !== undefined) payload.title = title;
+    if (body !== undefined) payload.body = body;
+    if (state !== undefined) payload.state = state;
+    if (labels !== undefined) payload.labels = labels;
+    if (assignees !== undefined) payload.assignees = assignees;
+    if (milestone !== undefined) payload.milestone = milestone;
+
+    const response = await githubFetch(`/repos/${repo}/issues/${number}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to update: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const issue = await response.json();
+    const changes = [];
+    if (title) changes.push(`title → "${title}"`);
+    if (state) changes.push(`state → ${state}`);
+    if (labels) changes.push(`labels → [${labels.join(", ")}]`);
+    if (assignees) changes.push(`assignees → [${assignees.join(", ")}]`);
+
+    return {
+      content: [{
+        type: "text",
+        text: `✅ Updated #${number}\n\n${changes.length > 0 ? changes.join("\n") : "Updated"}\n\n**URL:** ${issue.html_url}`
+      }],
+    };
+  }
+);
+
+// ============================================================================
+// ADDITIONAL READ OPERATIONS
+// ============================================================================
+
+// Tool: Compare branches
+const compareBranchesTool = tool(
+  "github_compare",
+  `Compare two branches, tags, or commits.
+
+Use this to see what changes exist between two refs.
+
+Examples:
+- Compare branches: {repo: "owner/repo", base: "main", head: "feature"}
+- Compare commits: {repo: "owner/repo", base: "abc123", head: "def456"}
+- Compare tags: {repo: "owner/repo", base: "v1.0.0", head: "v1.1.0"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    base: z.string().describe("Base branch, tag, or commit"),
+    head: z.string().describe("Head branch, tag, or commit"),
+    includeDiff: z.boolean().default(false).optional().describe("Include full diff"),
+    includeFiles: z.boolean().default(true).optional().describe("List changed files"),
+    includeCommits: z.boolean().default(true).optional().describe("List commits"),
+  },
+  async (args, extra) => {
+    const { repo, base, head, includeDiff = false, includeFiles = true, includeCommits = true } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const response = await githubFetch(`/repos/${repo}/compare/${base}...${head}`, token);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to compare: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const data = await response.json();
+
+    let result = `# Comparing ${base}...${head}
+
+**Status:** ${data.status}
+**Ahead by:** ${data.ahead_by} commits
+**Behind by:** ${data.behind_by} commits
+**Total commits:** ${data.total_commits}
+**Files changed:** ${data.files?.length || 0}`;
+
+    if (includeCommits && data.commits?.length > 0) {
+      result += `\n\n## Commits (${data.commits.length})\n`;
+      for (const commit of data.commits.slice(0, 20)) {
+        const sha = commit.sha.substring(0, 7);
+        const message = commit.commit.message.split("\n")[0].substring(0, 60);
+        const author = commit.author?.login || commit.commit.author.name;
+        result += `\n- \`${sha}\` ${message} (@${author})`;
+      }
+      if (data.commits.length > 20) {
+        result += `\n_... and ${data.commits.length - 20} more commits_`;
+      }
+    }
+
+    if (includeFiles && data.files?.length > 0) {
+      result += `\n\n## Files Changed (${data.files.length})\n`;
+      let additions = 0, deletions = 0;
+      for (const file of data.files.slice(0, 30)) {
+        const statusIcon = file.status === "added" ? "➕" :
+                          file.status === "removed" ? "➖" :
+                          file.status === "renamed" ? "📝" : "📄";
+        result += `\n${statusIcon} \`${file.filename}\` (+${file.additions}/-${file.deletions})`;
+        additions += file.additions;
+        deletions += file.deletions;
+      }
+      if (data.files.length > 30) {
+        result += `\n_... and ${data.files.length - 30} more files_`;
+      }
+      result += `\n\n**Total:** +${additions}/-${deletions}`;
+    }
+
+    if (includeDiff) {
+      const diffResponse = await githubFetch(`/repos/${repo}/compare/${base}...${head}`, token, {
+        accept: "application/vnd.github.v3.diff"
+      });
+      if (diffResponse.ok) {
+        const diff = await diffResponse.text();
+        const truncated = diff.length > 15000 ? diff.substring(0, 15000) + "\n\n... (truncated)" : diff;
+        result += `\n\n## Diff\n\n\`\`\`diff\n${truncated}\n\`\`\``;
+      }
+    }
+
+    return { content: [{ type: "text", text: result }] };
+  }
+);
+
+// Tool: GitHub Actions
+const listWorkflowRunsTool = tool(
+  "github_actions",
+  `List GitHub Actions workflow runs.
+
+Use this to see CI/CD status, build results, and deployment history.
+
+Examples:
+- Recent runs: {repo: "owner/repo"}
+- Failed runs: {repo: "owner/repo", status: "failure"}
+- Specific workflow: {repo: "owner/repo", workflow: "ci.yml"}
+- For a branch: {repo: "owner/repo", branch: "main"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    workflow: z.string().optional().describe("Workflow file name or ID"),
+    branch: z.string().optional().describe("Filter by branch"),
+    status: z.enum(["completed", "action_required", "cancelled", "failure", "neutral", "skipped", "stale", "success", "timed_out", "in_progress", "queued", "requested", "waiting", "pending"]).optional(),
+    event: z.string().optional().describe("Filter by trigger event (push, pull_request, etc.)"),
+    perPage: z.number().min(1).max(100).default(20).optional(),
+  },
+  async (args, extra) => {
+    const { repo, workflow, branch, status, event, perPage = 20 } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    let endpoint = workflow
+      ? `/repos/${repo}/actions/workflows/${workflow}/runs?per_page=${perPage}`
+      : `/repos/${repo}/actions/runs?per_page=${perPage}`;
+
+    if (branch) endpoint += `&branch=${branch}`;
+    if (status) endpoint += `&status=${status}`;
+    if (event) endpoint += `&event=${event}`;
+
+    const response = await githubFetch(endpoint, token);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to get workflow runs: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const data = await response.json();
+    const runs = data.workflow_runs || [];
+
+    let result = `# GitHub Actions - ${repo}\n`;
+    result += `Found ${data.total_count} workflow runs${branch ? ` on ${branch}` : ""}\n\n`;
+
+    for (const run of runs) {
+      const statusIcon = run.conclusion === "success" ? "✅" :
+                        run.conclusion === "failure" ? "❌" :
+                        run.conclusion === "cancelled" ? "⏹️" :
+                        run.status === "in_progress" ? "🔄" :
+                        run.status === "queued" ? "⏳" : "⚪";
+
+      const duration = run.updated_at && run.created_at
+        ? Math.round((new Date(run.updated_at).getTime() - new Date(run.created_at).getTime()) / 1000)
+        : null;
+      const durationStr = duration ? `${Math.floor(duration / 60)}m ${duration % 60}s` : "";
+
+      result += `${statusIcon} **${run.name}** #${run.run_number}\n`;
+      result += `  └ ${run.conclusion || run.status} | ${run.event} | \`${run.head_branch}\``;
+      if (durationStr) result += ` | ⏱️ ${durationStr}`;
+      result += `\n  └ ${run.head_commit?.message?.split("\n")[0].substring(0, 50) || "No commit message"}`;
+      result += `\n  └ ${formatRelativeTime(run.created_at)} | [View](${run.html_url})\n\n`;
+    }
+
+    return { content: [{ type: "text", text: result }] };
+  }
+);
+
+// Tool: File history
+const fileHistoryTool = tool(
+  "github_file_history",
+  `Get the commit history for a specific file.
+
+Use this to see how a file has changed over time and who modified it.
+
+Examples:
+- File history: {repo: "owner/repo", path: "src/index.ts"}
+- On branch: {repo: "owner/repo", path: "README.md", ref: "develop"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    path: z.string().describe("Path to the file"),
+    ref: z.string().optional().describe("Branch or tag (defaults to default branch)"),
+    perPage: z.number().min(1).max(100).default(30).optional(),
+  },
+  async (args, extra) => {
+    const { repo, path: filePath, ref, perPage = 30 } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    let endpoint = `/repos/${repo}/commits?path=${encodeURIComponent(filePath)}&per_page=${perPage}`;
+    if (ref) endpoint += `&sha=${ref}`;
+
+    const response = await githubFetch(endpoint, token);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to get file history: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const commits = await response.json();
+
+    let result = `# History of ${filePath}\n`;
+    result += `${commits.length} commits${ref ? ` on ${ref}` : ""}\n\n`;
+
+    // Get unique authors
+    const authors = new Set(commits.map((c: { author?: { login: string } }) => c.author?.login).filter(Boolean));
+    result += `**Contributors:** ${[...authors].slice(0, 10).map(a => `@${a}`).join(", ")}`;
+    if (authors.size > 10) result += ` and ${authors.size - 10} others`;
+    result += "\n\n## Commits\n";
+
+    for (const commit of commits) {
+      const sha = commit.sha.substring(0, 7);
+      const message = commit.commit.message.split("\n")[0];
+      const author = commit.author?.login || commit.commit.author.name;
+      const time = formatRelativeTime(commit.commit.author.date);
+      const stats = commit.stats ? ` (+${commit.stats.additions}/-${commit.stats.deletions})` : "";
+
+      result += `\n\`${sha}\` ${message}${stats}\n`;
+      result += `  └ @${author} · ${time}\n`;
+    }
+
+    return { content: [{ type: "text", text: result }] };
+  }
+);
+
+// Tool: List notifications
+const listNotificationsTool = tool(
+  "github_notifications",
+  `Get your GitHub notifications.
+
+Examples:
+- All unread: {participating: false}
+- Participating only: {participating: true}
+- All including read: {all: true}`,
+  {
+    all: z.boolean().default(false).optional().describe("Include read notifications"),
+    participating: z.boolean().default(false).optional().describe("Only participating notifications"),
+    perPage: z.number().min(1).max(100).default(30).optional(),
+  },
+  async (args, extra) => {
+    const { all = false, participating = false, perPage = 30 } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const endpoint = `/notifications?all=${all}&participating=${participating}&per_page=${perPage}`;
+    const response = await githubFetch(endpoint, token);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to get notifications: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const notifications = await response.json();
+
+    if (notifications.length === 0) {
+      return {
+        content: [{ type: "text", text: "🔔 No notifications" }],
+      };
+    }
+
+    let result = `# 🔔 Notifications (${notifications.length})\n\n`;
+
+    // Group by repository
+    const byRepo = new Map<string, typeof notifications>();
+    for (const n of notifications) {
+      const repo = n.repository.full_name;
+      if (!byRepo.has(repo)) byRepo.set(repo, []);
+      byRepo.get(repo)!.push(n);
+    }
+
+    for (const [repo, repoNotifications] of byRepo) {
+      result += `## ${repo}\n`;
+      for (const n of repoNotifications) {
+        const icon = n.subject.type === "Issue" ? "🐛" :
+                    n.subject.type === "PullRequest" ? "🔀" :
+                    n.subject.type === "Release" ? "🏷️" :
+                    n.subject.type === "Discussion" ? "💬" : "📌";
+        const unread = n.unread ? "🔵" : "⚪";
+        result += `${unread} ${icon} ${n.subject.title}\n`;
+        result += `  └ ${n.reason} · ${formatRelativeTime(n.updated_at)}\n`;
+      }
+      result += "\n";
+    }
+
+    return { content: [{ type: "text", text: result }] };
+  }
+);
+
+// Tool: Star/Unstar repo
+const starRepoTool = tool(
+  "github_star",
+  `Star or unstar a repository.
+
+Examples:
+- Star: {repo: "owner/repo", star: true}
+- Unstar: {repo: "owner/repo", star: false}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    star: z.boolean().describe("true to star, false to unstar"),
+  },
+  async (args, extra) => {
+    const { repo, star } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const response = await githubFetch(`/user/starred/${repo}`, token, {
+      method: star ? "PUT" : "DELETE",
+    });
+
+    if (!response.ok && response.status !== 204) {
+      return {
+        content: [{ type: "text", text: `Failed to ${star ? "star" : "unstar"} repo` }],
+        isError: true,
+      };
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: star ? `⭐ Starred ${repo}` : `Unstarred ${repo}`
+      }],
+    };
+  }
+);
+
+// Tool: Fork repo
+const forkRepoTool = tool(
+  "github_fork",
+  `Fork a repository to your account or organization.
+
+Examples:
+- Fork to your account: {repo: "owner/repo"}
+- Fork to org: {repo: "owner/repo", organization: "my-org"}`,
+  {
+    repo: z.string().describe("Repository in owner/repo format"),
+    organization: z.string().optional().describe("Organization to fork to"),
+    name: z.string().optional().describe("Custom name for the fork"),
+  },
+  async (args, extra) => {
+    const { repo, organization, name } = args;
+    const context = extra as { githubToken?: string };
+    const token = context?.githubToken;
+
+    if (!token) {
+      return {
+        content: [{ type: "text", text: "GitHub token not configured. Add it in Settings." }],
+        isError: true,
+      };
+    }
+
+    const payload: Record<string, unknown> = {};
+    if (organization) payload.organization = organization;
+    if (name) payload.name = name;
+
+    const response = await githubFetch(`/repos/${repo}/forks`, token, {
+      method: "POST",
+      body: Object.keys(payload).length > 0 ? JSON.stringify(payload) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return {
+        content: [{ type: "text", text: `Failed to fork: ${error.message || response.statusText}` }],
+        isError: true,
+      };
+    }
+
+    const fork = await response.json();
+
+    return {
+      content: [{
+        type: "text",
+        text: `🍴 Forked ${repo} to ${fork.full_name}\n\n**URL:** ${fork.html_url}`
+      }],
+    };
+  }
+);
+
 /**
  * Create the GitHub MCP server with all tools
  */
@@ -1467,6 +2307,7 @@ export function createGitHubMcpServer(githubToken: string, cwd?: string) {
     name: "github",
     version: "1.0.0",
     tools: [
+      // Read operations
       wrapTool(searchCodeTool),
       wrapTool(readFileTool),
       wrapTool(listFilesTool),
@@ -1476,6 +2317,19 @@ export function createGitHubMcpServer(githubToken: string, cwd?: string) {
       wrapTool(getPRTool),
       wrapTool(cloneRepoTool),
       wrapTool(repoInfoTool),
+      wrapTool(compareBranchesTool),
+      wrapTool(listWorkflowRunsTool),
+      wrapTool(fileHistoryTool),
+      wrapTool(listNotificationsTool),
+      // Write operations
+      wrapTool(createIssueTool),
+      wrapTool(addCommentTool),
+      wrapTool(createBranchTool),
+      wrapTool(createPRTool),
+      wrapTool(mergePRTool),
+      wrapTool(updateIssueTool),
+      wrapTool(starRepoTool),
+      wrapTool(forkRepoTool),
     ],
   });
 }
