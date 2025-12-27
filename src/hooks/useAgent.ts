@@ -39,6 +39,15 @@ const toolToActivityType: Record<string, ActivityType> = {
   github_update_issue: "github",
   github_star: "github",
   github_fork: "github",
+  // Research MCP tools
+  notebook_create: "file_write",
+  notebook_add_cells: "file_write",
+  notebook_execute: "command",
+  notebook_read: "file_read",
+  research_arxiv: "thinking",
+  research_semantic_scholar: "thinking",
+  python_run: "command",
+  visualize_data: "file_write",
 };
 
 // Infer artifact kind from file extension

@@ -82,12 +82,16 @@ export async function POST(request: NextRequest) {
           permissionMode: "acceptEdits",
         };
 
+        // Add MCP servers
+        const { createResearchMcpServer } = await import("@/lib/research-mcp");
+        agentOptions.mcpServers = {
+          research: createResearchMcpServer(agentOptions.cwd),
+        };
+
         // Add GitHub MCP server if token is provided
         if (githubToken) {
           const githubMcpServer = createGitHubMcpServer(githubToken, agentOptions.cwd);
-          agentOptions.mcpServers = {
-            github: githubMcpServer,
-          };
+          agentOptions.mcpServers.github = githubMcpServer;
         }
 
         // Resume session if provided
