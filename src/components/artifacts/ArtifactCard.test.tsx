@@ -40,13 +40,14 @@ Object.assign(URL, {
 describe("ArtifactCard", () => {
   const createArtifact = (overrides: Partial<Artifact> = {}): Artifact => ({
     id: "artifact-1",
+    sessionId: "session-1",
     title: "Test Artifact",
     filename: "test.txt",
     content: "Test content",
     kind: "text",
     mimeType: "text/plain",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
   });
 
@@ -311,7 +312,7 @@ describe("ArtifactCard", () => {
 
   describe("metadata display", () => {
     it("should display relative time", () => {
-      const artifact = createArtifact({ updatedAt: Date.now() - 60000 }); // 1 minute ago
+      const artifact = createArtifact({ updatedAt: new Date(Date.now() - 60000).toISOString() }); // 1 minute ago
 
       render(<ArtifactCard artifact={artifact} />);
 

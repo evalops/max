@@ -315,10 +315,10 @@ describe("useAppStore", () => {
 
     it("should set document", () => {
       useAppStore.getState().setDocument({
+        id: "doc-1",
         filename: "README.md",
         language: "markdown",
         content: "# Hello World",
-        isEditing: false,
       });
 
       const { document } = useAppStore.getState();
@@ -329,10 +329,10 @@ describe("useAppStore", () => {
 
     it("should clear document", () => {
       useAppStore.getState().setDocument({
+        id: "doc-1",
         filename: "test.txt",
         language: "text",
         content: "Test",
-        isEditing: false,
       });
 
       useAppStore.getState().setDocument(null);
@@ -350,10 +350,16 @@ describe("useAppStore", () => {
 
     it("should add tool run with generated id", () => {
       const id = useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "read_file",
         label: "Reading file.txt",
         status: "running",
-        input: { path: "file.txt" },
+        startedAt: Date.now(),
+        completedAt: null,
+        progress: null,
+        args: { path: "file.txt" },
+        output: null,
+        error: null,
       });
 
       const { toolRuns } = useAppStore.getState();
@@ -365,10 +371,16 @@ describe("useAppStore", () => {
 
     it("should update tool run", () => {
       const id = useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "read_file",
         label: "Reading file.txt",
         status: "running",
-        input: { path: "file.txt" },
+        startedAt: Date.now(),
+        completedAt: null,
+        progress: null,
+        args: { path: "file.txt" },
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().updateToolRun(id, {
@@ -383,43 +395,67 @@ describe("useAppStore", () => {
 
     it("should log to tool run", () => {
       const id = useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "bash",
         label: "Running command",
         status: "running",
-        input: { command: "npm test" },
+        startedAt: Date.now(),
+        completedAt: null,
+        progress: null,
+        args: { command: "npm test" },
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().logToolRun(id, {
-        type: "output",
-        content: "Tests passed",
+        level: "info",
+        message: "Tests passed",
       });
 
       const { toolRuns } = useAppStore.getState();
       expect(toolRuns[0].logs).toHaveLength(1);
-      expect(toolRuns[0].logs[0].content).toBe("Tests passed");
+      expect(toolRuns[0].logs[0].message).toBe("Tests passed");
       expect(toolRuns[0].logs[0].timestamp).toBeDefined();
     });
 
     it("should filter tool runs by status", () => {
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "tool1",
         label: "Tool 1",
         status: "running",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "tool2",
         label: "Tool 2",
         status: "succeeded",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "tool3",
         label: "Tool 3",
         status: "failed",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       // Filter by active (running)
@@ -443,17 +479,29 @@ describe("useAppStore", () => {
 
     it("should filter tool runs by query", () => {
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "read_file",
         label: "Reading package.json",
         status: "succeeded",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "write_file",
         label: "Writing config",
         status: "succeeded",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().setToolRunFilter({ status: "all", query: "package" });
@@ -467,10 +515,16 @@ describe("useAppStore", () => {
       // Add more than MAX_TOOL_RUNS (100) tool runs
       for (let i = 0; i < 110; i++) {
         useAppStore.getState().addToolRun({
+          toolCallId: null,
           name: `tool-${i}`,
           label: `Tool ${i}`,
           status: "succeeded",
-          input: {},
+          startedAt: null,
+          completedAt: null,
+          progress: null,
+          args: {},
+          output: null,
+          error: null,
         });
       }
 
@@ -480,10 +534,16 @@ describe("useAppStore", () => {
 
     it("should clear tool runs", () => {
       useAppStore.getState().addToolRun({
+        toolCallId: null,
         name: "tool",
         label: "Tool",
         status: "succeeded",
-        input: {},
+        startedAt: null,
+        completedAt: null,
+        progress: null,
+        args: {},
+        output: null,
+        error: null,
       });
 
       useAppStore.getState().clearToolRuns();
@@ -502,13 +562,16 @@ describe("useAppStore", () => {
     it("should add cost entry", () => {
       useAppStore.getState().addCostEntry({
         model: "claude-sonnet",
+        toolNames: [],
+        inputTokens: 1000,
+        outputTokens: 500,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         cost: {
-          inputTokens: 1000,
-          outputTokens: 500,
+          input: 0.003,
+          output: 0.0075,
           cacheRead: 0,
           cacheWrite: 0,
-          inputCost: 0.003,
-          outputCost: 0.0075,
           total: 0.0105,
         },
       });
@@ -522,26 +585,32 @@ describe("useAppStore", () => {
     it("should calculate total cost", () => {
       useAppStore.getState().addCostEntry({
         model: "claude-sonnet",
+        toolNames: [],
+        inputTokens: 1000,
+        outputTokens: 500,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         cost: {
-          inputTokens: 1000,
-          outputTokens: 500,
+          input: 0.003,
+          output: 0.0075,
           cacheRead: 0,
           cacheWrite: 0,
-          inputCost: 0.003,
-          outputCost: 0.0075,
           total: 0.01,
         },
       });
 
       useAppStore.getState().addCostEntry({
         model: "claude-sonnet",
+        toolNames: [],
+        inputTokens: 2000,
+        outputTokens: 1000,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         cost: {
-          inputTokens: 2000,
-          outputTokens: 1000,
+          input: 0.006,
+          output: 0.015,
           cacheRead: 0,
           cacheWrite: 0,
-          inputCost: 0.006,
-          outputCost: 0.015,
           total: 0.02,
         },
       });
@@ -553,13 +622,16 @@ describe("useAppStore", () => {
     it("should clear cost timeline", () => {
       useAppStore.getState().addCostEntry({
         model: "claude-sonnet",
+        toolNames: [],
+        inputTokens: 1000,
+        outputTokens: 500,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         cost: {
-          inputTokens: 1000,
-          outputTokens: 500,
+          input: 0.003,
+          output: 0.0075,
           cacheRead: 0,
           cacheWrite: 0,
-          inputCost: 0.003,
-          outputCost: 0.0075,
           total: 0.01,
         },
       });
