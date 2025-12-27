@@ -2,16 +2,7 @@
 
 import { useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import {
-  Search,
-  Wrench,
-  Play,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Trash2,
-  Filter,
-} from "lucide-react";
+import { Search, Wrench, Play, CheckCircle, XCircle, Clock, Trash2, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store";
 import { ToolRunCard } from "./ToolRunCard";
@@ -31,13 +22,8 @@ const statusFilters: {
 ];
 
 export function ToolRunsPanel() {
-  const {
-    toolRunFilter,
-    setToolRunFilter,
-    getFilteredToolRuns,
-    clearToolRuns,
-    toolRuns,
-  } = useAppStore();
+  const { toolRunFilter, setToolRunFilter, getFilteredToolRuns, clearToolRuns, toolRuns } =
+    useAppStore();
 
   // Include toolRuns and toolRunFilter as deps for proper cache invalidation
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,10 +65,7 @@ export function ToolRunsPanel() {
 
         {/* Search */}
         <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
-          />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
           <input
             type="text"
             value={toolRunFilter.query}
@@ -105,9 +88,7 @@ export function ToolRunsPanel() {
                 onClick={() => setToolRunFilter({ status: filter.value })}
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-all",
-                  isActive
-                    ? "bg-ink-800 text-white"
-                    : "bg-ink-100 text-ink-600 hover:bg-ink-200"
+                  isActive ? "bg-ink-800 text-white" : "bg-ink-100 text-ink-600 hover:bg-ink-200"
                 )}
               >
                 <Icon size={12} className={isActive ? "text-white" : filter.color} />

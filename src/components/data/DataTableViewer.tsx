@@ -103,9 +103,7 @@ export function DataTableViewer({
     if (!searchQuery) return data;
     const query = searchQuery.toLowerCase();
     return data.filter((row) =>
-      Object.values(row).some((value) =>
-        String(value).toLowerCase().includes(query)
-      )
+      Object.values(row).some((value) => String(value).toLowerCase().includes(query))
     );
   }, [data, searchQuery]);
 
@@ -156,15 +154,17 @@ export function DataTableViewer({
     // Default CSV export
     const headers = columns.map((c) => c.label || c.key).join(",");
     const rows = sortedData.map((row) =>
-      columns.map((c) => {
-        const val = row[c.key];
-        const str = formatValue(val);
-        // Escape quotes and wrap in quotes if contains comma
-        if (str.includes(",") || str.includes('"')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      }).join(",")
+      columns
+        .map((c) => {
+          const val = row[c.key];
+          const str = formatValue(val);
+          // Escape quotes and wrap in quotes if contains comma
+          if (str.includes(",") || str.includes('"')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        })
+        .join(",")
     );
     const csv = [headers, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -181,7 +181,7 @@ export function DataTableViewer({
   if (!data || data.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center p-8 ${className}`}>
-        <Table size={32} className="text-zinc-400 mb-2" />
+        <Table size={32} className="mb-2 text-zinc-400" />
         <p className="text-sm text-zinc-500">No data to display</p>
       </div>
     );
@@ -189,16 +189,16 @@ export function DataTableViewer({
 
   return (
     <div
-      className={`bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden ${className}`}
+      className={`overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-700 dark:bg-zinc-800">
         <div className="flex items-center gap-2">
           <Table size={16} className="text-emerald-500" />
           <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {title || "Data Table"}
           </span>
-          <span className="text-xs text-zinc-500 bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded">
+          <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs text-zinc-500 dark:bg-zinc-700">
             {sortedData.length} rows
           </span>
         </div>
@@ -218,14 +218,14 @@ export function DataTableViewer({
                   setCurrentPage(1);
                 }}
                 placeholder="Search..."
-                className="pl-7 pr-3 py-1 text-xs rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+                className="w-36 rounded border border-zinc-300 bg-white py-1 pl-7 pr-3 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
               />
             </div>
           )}
 
           <button
             onClick={handleExport}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded transition-colors"
+            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
           >
             <Download size={12} />
             <span>Export</span>
@@ -237,9 +237,9 @@ export function DataTableViewer({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+            <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
               {showRowNumbers && (
-                <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider w-12">
+                <th className="w-12 px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
                   #
                 </th>
               )}
@@ -250,15 +250,23 @@ export function DataTableViewer({
                 return (
                   <th
                     key={col.key}
-                    className={`px-3 py-2 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider ${
-                      canSort ? "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300 select-none" : ""
+                    className={`px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 ${
+                      canSort
+                        ? "cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
+                        : ""
                     }`}
                     style={{ width: col.width }}
                     onClick={() => canSort && handleSort(col.key)}
                   >
-                    <div className={`flex items-center gap-1 ${
-                      col.align === "center" ? "justify-center" : col.align === "right" ? "justify-end" : ""
-                    }`}>
+                    <div
+                      className={`flex items-center gap-1 ${
+                        col.align === "center"
+                          ? "justify-center"
+                          : col.align === "right"
+                            ? "justify-end"
+                            : ""
+                      }`}
+                    >
                       <span>{col.label || col.key}</span>
                       {canSort && (
                         <span className="flex flex-col">
@@ -297,13 +305,13 @@ export function DataTableViewer({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className={`${
-                      striped && rowIndex % 2 === 1
-                        ? "bg-zinc-50/50 dark:bg-zinc-800/30"
-                        : ""
-                    } hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors`}
+                      striped && rowIndex % 2 === 1 ? "bg-zinc-50/50 dark:bg-zinc-800/30" : ""
+                    } transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800`}
                   >
                     {showRowNumbers && (
-                      <td className={`px-3 ${compact ? "py-1" : "py-2"} text-xs text-zinc-400 font-mono`}>
+                      <td
+                        className={`px-3 ${compact ? "py-1" : "py-2"} font-mono text-xs text-zinc-400`}
+                      >
                         {globalIndex + 1}
                       </td>
                     )}
@@ -315,7 +323,11 @@ export function DataTableViewer({
                         <td
                           key={col.key}
                           className={`px-3 ${compact ? "py-1" : "py-2"} text-zinc-700 dark:text-zinc-300 ${
-                            col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : ""
+                            col.align === "center"
+                              ? "text-center"
+                              : col.align === "right"
+                                ? "text-right"
+                                : ""
                           } ${typeof value === "number" ? "font-mono" : ""}`}
                         >
                           {formatted}
@@ -332,7 +344,7 @@ export function DataTableViewer({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+        <div className="flex items-center justify-between border-t border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-700 dark:bg-zinc-800/50">
           <div className="text-xs text-zinc-500">
             Showing {(currentPage - 1) * pageSize + 1} -{" "}
             {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length}
@@ -342,14 +354,14 @@ export function DataTableViewer({
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="rounded p-1 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700"
             >
               <ChevronsLeft size={14} className="text-zinc-500" />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="rounded p-1 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700"
             >
               <ChevronLeft size={14} className="text-zinc-500" />
             </button>
@@ -361,14 +373,14 @@ export function DataTableViewer({
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="rounded p-1 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700"
             >
               <ChevronRight size={14} className="text-zinc-500" />
             </button>
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="rounded p-1 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700"
             >
               <ChevronsRight size={14} className="text-zinc-500" />
             </button>

@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type KeyboardEvent, type ChangeEvent, type DragEvent } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  type KeyboardEvent,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Github,
@@ -47,16 +55,58 @@ const suggestedPrompts = [
 
 // File extension to language mapping
 const extToLang: Record<string, string> = {
-  ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript",
-  py: "python", rb: "ruby", go: "go", rs: "rust", java: "java",
-  cpp: "cpp", c: "c", h: "c", css: "css", scss: "scss", html: "html",
-  json: "json", yaml: "yaml", yml: "yaml", md: "markdown", sh: "bash",
+  ts: "typescript",
+  tsx: "typescript",
+  js: "javascript",
+  jsx: "javascript",
+  py: "python",
+  rb: "ruby",
+  go: "go",
+  rs: "rust",
+  java: "java",
+  cpp: "cpp",
+  c: "c",
+  h: "c",
+  css: "css",
+  scss: "scss",
+  html: "html",
+  json: "json",
+  yaml: "yaml",
+  yml: "yaml",
+  md: "markdown",
+  sh: "bash",
 };
 
 const ACCEPTED_FILE_TYPES = [
-  ".txt", ".md", ".json", ".js", ".ts", ".tsx", ".jsx", ".py", ".rb", ".go",
-  ".rs", ".java", ".c", ".cpp", ".h", ".css", ".scss", ".html", ".xml",
-  ".yaml", ".yml", ".toml", ".sh", ".bash", ".png", ".jpg", ".jpeg", ".gif", ".webp"
+  ".txt",
+  ".md",
+  ".json",
+  ".js",
+  ".ts",
+  ".tsx",
+  ".jsx",
+  ".py",
+  ".rb",
+  ".go",
+  ".rs",
+  ".java",
+  ".c",
+  ".cpp",
+  ".h",
+  ".css",
+  ".scss",
+  ".html",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".sh",
+  ".bash",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
 ];
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
@@ -112,17 +162,19 @@ export function MessageInput({
   const formatAttachmentsForMessage = useCallback(() => {
     if (attachments.length === 0) return "";
 
-    return attachments.map(att => {
-      if (att.type === "github") {
-        return att.content;
-      }
-      const ext = att.name.split(".").pop() || "";
-      const lang = extToLang[ext] || ext;
-      if (att.type === "image") {
-        return `[Image: ${att.name}]`;
-      }
-      return `**File: ${att.name}**\n\`\`\`${lang}\n${att.content}\n\`\`\``;
-    }).join("\n\n");
+    return attachments
+      .map((att) => {
+        if (att.type === "github") {
+          return att.content;
+        }
+        const ext = att.name.split(".").pop() || "";
+        const lang = extToLang[ext] || ext;
+        if (att.type === "image") {
+          return `[Image: ${att.name}]`;
+        }
+        return `**File: ${att.name}**\n\`\`\`${lang}\n${att.content}\n\`\`\``;
+      })
+      .join("\n\n");
   }, [attachments]);
 
   const handleSend = useCallback(() => {
@@ -155,13 +207,16 @@ export function MessageInput({
 
   const handleGitHubImport = (content: string) => {
     const id = `gh-${Date.now()}`;
-    setAttachments(prev => [...prev, {
-      id,
-      name: "GitHub Import",
-      content,
-      type: "github",
-      size: content.length,
-    }]);
+    setAttachments((prev) => [
+      ...prev,
+      {
+        id,
+        name: "GitHub Import",
+        content,
+        type: "github",
+        size: content.length,
+      },
+    ]);
     inputRef.current?.focus();
   };
 
@@ -207,7 +262,7 @@ export function MessageInput({
       }
     }
 
-    setAttachments(prev => [...prev, ...newAttachments]);
+    setAttachments((prev) => [...prev, ...newAttachments]);
     inputRef.current?.focus();
     e.target.value = "";
   };
@@ -256,7 +311,7 @@ export function MessageInput({
     }
 
     if (newAttachments.length > 0) {
-      setAttachments(prev => [...prev, ...newAttachments]);
+      setAttachments((prev) => [...prev, ...newAttachments]);
     }
   };
 
@@ -282,12 +337,12 @@ export function MessageInput({
           newAttachments.push(attachment);
         }
       }
-      setAttachments(prev => [...prev, ...newAttachments]);
+      setAttachments((prev) => [...prev, ...newAttachments]);
     }
   };
 
   const removeAttachment = (id: string) => {
-    setAttachments(prev => prev.filter(att => att.id !== id));
+    setAttachments((prev) => prev.filter((att) => att.id !== id));
   };
 
   const toggleVoiceRecording = useCallback(() => {
@@ -409,8 +464,8 @@ export function MessageInput({
                     att.type === "image"
                       ? "border-terminal-purple/30 bg-terminal-purple/5 p-1"
                       : att.type === "github"
-                      ? "border-ink-300 bg-ink-50 px-3 py-1.5"
-                      : "border-terminal-green/30 bg-terminal-green/5 px-3 py-1.5"
+                        ? "border-ink-300 bg-ink-50 px-3 py-1.5"
+                        : "border-terminal-green/30 bg-terminal-green/5 px-3 py-1.5"
                   )}
                 >
                   {att.type === "image" ? (
@@ -425,24 +480,22 @@ export function MessageInput({
                         <span className="max-w-24 truncate text-xs font-medium text-ink-700">
                           {att.name}
                         </span>
-                        <span className="text-[10px] text-ink-400">
-                          {formatFileSize(att.size)}
-                        </span>
+                        <span className="text-[10px] text-ink-400">{formatFileSize(att.size)}</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <span className={cn(
-                        att.type === "github" ? "text-ink-600" : "text-terminal-green"
-                      )}>
+                      <span
+                        className={cn(
+                          att.type === "github" ? "text-ink-600" : "text-terminal-green"
+                        )}
+                      >
                         {getAttachmentIcon(att)}
                       </span>
                       <span className="max-w-32 truncate text-xs font-medium text-ink-700">
                         {att.name}
                       </span>
-                      <span className="text-xs text-ink-400">
-                        {formatFileSize(att.size)}
-                      </span>
+                      <span className="text-xs text-ink-400">{formatFileSize(att.size)}</span>
                     </>
                   )}
                   <button
@@ -493,8 +546,8 @@ export function MessageInput({
           isProcessing
             ? "border-terminal-blue/30 ring-2 ring-terminal-blue/10"
             : isDragging
-            ? "border-terminal-blue ring-2 ring-terminal-blue/20"
-            : "border-paper-400 focus-within:border-ink-300 focus-within:shadow-elevated"
+              ? "border-terminal-blue ring-2 ring-terminal-blue/20"
+              : "border-paper-400 focus-within:border-ink-300 focus-within:shadow-elevated"
         )}
       >
         {/* Attachment button */}
@@ -529,8 +582,8 @@ export function MessageInput({
             !hasApiKey
               ? "Add API key in settings to start..."
               : attachments.length > 0
-              ? "Add a message or send attachments..."
-              : `Message ${agentName}...`
+                ? "Add a message or send attachments..."
+                : `Message ${agentName}...`
           }
           disabled={isProcessing}
           className="min-w-0 flex-1 bg-transparent text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
@@ -597,11 +650,15 @@ export function MessageInput({
               disabled={!canSend}
               className={cn(
                 "ml-1 flex size-8 items-center justify-center rounded-full transition-all",
-                canSend
-                  ? "bg-ink-900 text-white hover:bg-ink-700"
-                  : "bg-ink-200 text-ink-400"
+                canSend ? "bg-ink-900 text-white hover:bg-ink-700" : "bg-ink-200 text-ink-400"
               )}
-              title={canSend ? "Send (Enter)" : !hasApiKey ? "API key required" : "Type a message or attach files"}
+              title={
+                canSend
+                  ? "Send (Enter)"
+                  : !hasApiKey
+                    ? "API key required"
+                    : "Type a message or attach files"
+              }
             >
               <Send size={14} />
             </motion.button>

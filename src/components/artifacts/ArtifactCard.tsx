@@ -300,9 +300,7 @@ export function ArtifactCard({
                   </div>
                 ))}
                 {revisions.length > 5 && (
-                  <p className="text-xs text-ink-400">
-                    +{revisions.length - 5} more revisions
-                  </p>
+                  <p className="text-xs text-ink-400">+{revisions.length - 5} more revisions</p>
                 )}
               </div>
             </div>

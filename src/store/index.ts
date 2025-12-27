@@ -202,9 +202,7 @@ export const useAppStore = create<AppState>()(
         })),
       updateActivity: (id, updates) =>
         set((state) => ({
-          activities: state.activities.map((a) =>
-            a.id === id ? { ...a, ...updates } : a
-          ),
+          activities: state.activities.map((a) => (a.id === id ? { ...a, ...updates } : a)),
         })),
       clearActivities: () => set({ activities: [] }),
 
@@ -224,9 +222,7 @@ export const useAppStore = create<AppState>()(
         })),
       updateTask: (id, updates) =>
         set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.id === id ? { ...t, ...updates } : t
-          ),
+          tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
         })),
       clearTasks: () => set({ tasks: [] }),
 
@@ -298,9 +294,7 @@ export const useAppStore = create<AppState>()(
       },
       updateToolRun: (id, updates) =>
         set((state) => ({
-          toolRuns: state.toolRuns.map((r) =>
-            r.id === id ? { ...r, ...updates } : r
-          ),
+          toolRuns: state.toolRuns.map((r) => (r.id === id ? { ...r, ...updates } : r)),
         })),
       logToolRun: (id, entry) =>
         set((state) => ({
@@ -308,10 +302,7 @@ export const useAppStore = create<AppState>()(
             r.id === id
               ? {
                   ...r,
-                  logs: [
-                    ...r.logs,
-                    { ...entry, id: generateId(), timestamp: Date.now() },
-                  ],
+                  logs: [...r.logs, { ...entry, id: generateId(), timestamp: Date.now() }],
                 }
               : r
           ),
@@ -337,9 +328,7 @@ export const useAppStore = create<AppState>()(
               filtered = filtered.filter((r) => r.status === "succeeded");
               break;
             case "errors":
-              filtered = filtered.filter(
-                (r) => r.status === "failed" || r.status === "cancelled"
-              );
+              filtered = filtered.filter((r) => r.status === "failed" || r.status === "cancelled");
               break;
           }
         }
@@ -387,7 +376,10 @@ export const useAppStore = create<AppState>()(
       setCurrentRepo: (repo, autoDetected = false) =>
         set((state) => {
           const newRecentRepos = repo
-            ? [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(0, MAX_RECENT_REPOS)
+            ? [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(
+                0,
+                MAX_RECENT_REPOS
+              )
             : state.githubContext.recentRepos;
           return {
             githubContext: {
@@ -402,7 +394,10 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           githubContext: {
             ...state.githubContext,
-            recentRepos: [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(0, MAX_RECENT_REPOS),
+            recentRepos: [repo, ...state.githubContext.recentRepos.filter((r) => r !== repo)].slice(
+              0,
+              MAX_RECENT_REPOS
+            ),
           },
         })),
       clearGitHubContext: () => set({ githubContext: defaultGitHubContext }),

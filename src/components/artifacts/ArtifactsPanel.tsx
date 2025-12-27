@@ -2,16 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Search,
-  Package,
-  FolderOpen,
-  Filter,
-  SortAsc,
-  SortDesc,
-  Grid,
-  List,
-} from "lucide-react";
+import { Search, Package, FolderOpen, Filter, SortAsc, SortDesc, Grid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store";
 import { ArtifactCard } from "./ArtifactCard";
@@ -147,10 +138,7 @@ export function ArtifactsPanel() {
 
         {/* Search */}
         <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
-          />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
           <input
             type="text"
             value={searchQuery}
@@ -237,11 +225,7 @@ export function ArtifactsPanel() {
           </div>
         ) : (
           <div
-            className={cn(
-              viewMode === "grid"
-                ? "grid grid-cols-2 gap-3"
-                : "flex flex-col gap-3"
-            )}
+            className={cn(viewMode === "grid" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3")}
           >
             <AnimatePresence mode="popLayout">
               {filteredArtifacts.map((artifact) => (

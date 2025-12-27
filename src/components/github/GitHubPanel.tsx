@@ -77,9 +77,7 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
 
   // Filter GitHub-related tool runs
   const githubToolRuns = useMemo(() => {
-    return toolRuns
-      .filter((run) => run.name.startsWith("github_"))
-      .slice(0, 50); // Limit to 50 most recent
+    return toolRuns.filter((run) => run.name.startsWith("github_")).slice(0, 50); // Limit to 50 most recent
   }, [toolRuns]);
 
   // Group by repo
@@ -114,17 +112,17 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
     return (
       <div className={`flex h-full flex-col items-center justify-center p-6 ${className}`}>
         <div className="mb-4 rounded-full bg-zinc-100 p-3 dark:bg-zinc-800">
-          <svg className="w-8 h-8 text-zinc-400" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="size-8 text-zinc-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-zinc-800 dark:text-zinc-200 mb-2">
+        <h3 className="mb-2 text-lg font-medium text-zinc-800 dark:text-zinc-200">
           Connect GitHub
         </h3>
-        <p className="text-sm text-zinc-500 text-center mb-4">
+        <p className="mb-4 text-center text-sm text-zinc-500">
           Add a GitHub token in settings to enable GitHub tools.
         </p>
-        <p className="text-xs text-zinc-400 text-center">
+        <p className="text-center text-xs text-zinc-400">
           The agent can search code, manage issues & PRs, and more.
         </p>
       </div>
@@ -134,7 +132,7 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
   return (
     <div className={`flex h-full flex-col ${className}`}>
       {/* Header with repo switcher */}
-      <div className="shrink-0 p-3 border-b border-zinc-200 dark:border-zinc-700">
+      <div className="shrink-0 border-b border-zinc-200 p-3 dark:border-zinc-700">
         <RepoSwitcher className="w-full" />
         {currentRepo && currentBranch && (
           <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
@@ -146,21 +144,17 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
 
       {/* Stats */}
       {stats.total > 0 && (
-        <div className="shrink-0 p-3 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+        <div className="shrink-0 border-b border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-500">
               {stats.total} GitHub operation{stats.total !== 1 ? "s" : ""}
             </span>
             <div className="flex items-center gap-3">
               {stats.success > 0 && (
-                <span className="text-green-600 dark:text-green-400">
-                  ✓ {stats.success}
-                </span>
+                <span className="text-green-600 dark:text-green-400">✓ {stats.success}</span>
               )}
               {stats.error > 0 && (
-                <span className="text-red-600 dark:text-red-400">
-                  ✗ {stats.error}
-                </span>
+                <span className="text-red-600 dark:text-red-400">✗ {stats.error}</span>
               )}
             </div>
           </div>
@@ -182,10 +176,10 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
               <div key={repo} className="mb-4">
                 {/* Repo header */}
                 <div className="flex items-center gap-2 px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
+                  <svg className="size-3" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 011-1h8zM5 12.25v3.25a.25.25 0 00.4.2l1.45-1.087a.25.25 0 01.3 0L8.6 15.7a.25.25 0 00.4-.2v-3.25a.25.25 0 00-.25-.25h-3.5a.25.25 0 00-.25.25z" />
                   </svg>
-                  <span className="font-medium truncate">{repo}</span>
+                  <span className="truncate font-medium">{repo}</span>
                 </div>
 
                 {/* Tool runs for this repo */}
@@ -203,28 +197,33 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
                         key={run.id}
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
+                        className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
                       >
-                        <div className={`p-1 rounded ${run.status === "failed" ? "bg-red-100 dark:bg-red-900/30" : "bg-zinc-100 dark:bg-zinc-800"}`}>
-                          <Icon size={12} className={run.status === "failed" ? "text-red-500" : info.color} />
+                        <div
+                          className={`rounded p-1 ${run.status === "failed" ? "bg-red-100 dark:bg-red-900/30" : "bg-zinc-100 dark:bg-zinc-800"}`}
+                        >
+                          <Icon
+                            size={12}
+                            className={run.status === "failed" ? "text-red-500" : info.color}
+                          />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 truncate">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             {info.label}
                           </div>
                           {run.output && (
-                            <div className="text-[10px] text-zinc-400 truncate">
+                            <div className="truncate text-[10px] text-zinc-400">
                               {typeof run.output === "string"
                                 ? run.output.substring(0, 50)
                                 : "Completed"}
                             </div>
                           )}
                         </div>
-                        <div className="text-[10px] text-zinc-400 shrink-0">
+                        <div className="shrink-0 text-[10px] text-zinc-400">
                           {formatTime(run.createdAt)}
                         </div>
                         {run.status === "running" && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          <div className="size-1.5 animate-pulse rounded-full bg-blue-500" />
                         )}
                       </motion.div>
                     );
@@ -238,13 +237,13 @@ export function GitHubPanel({ className = "" }: GitHubPanelProps) {
 
       {/* Quick actions footer */}
       {currentRepo && (
-        <div className="shrink-0 p-2 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+        <div className="shrink-0 border-t border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-700 dark:bg-zinc-800/50">
           <div className="flex items-center gap-2">
             <a
               href={`https://github.com/${currentRepo}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
             >
               <ExternalLink size={12} />
               <span>Open on GitHub</span>

@@ -12,15 +12,7 @@ export interface AgentRequest {
 }
 
 export interface AgentEvent {
-  type:
-    | "init"
-    | "tool_start"
-    | "tool_end"
-    | "thinking"
-    | "message"
-    | "result"
-    | "error"
-    | "status";
+  type: "init" | "tool_start" | "tool_end" | "thinking" | "message" | "result" | "error" | "status";
   data: Record<string, unknown>;
   timestamp: string;
 }
@@ -85,7 +77,7 @@ export async function POST(request: NextRequest) {
         // Add MCP servers
         const { createResearchMcpServer } = await import("@/lib/research-mcp");
         agentOptions.mcpServers = {
-          research: createResearchMcpServer(agentOptions.cwd),
+          research: await createResearchMcpServer(agentOptions.cwd),
         };
 
         // Add GitHub MCP server if token is provided

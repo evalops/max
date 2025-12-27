@@ -83,10 +83,7 @@ export function CostPanel() {
             <h2 className="font-semibold text-ink-800">Session Cost</h2>
           </div>
           {costTimeline.length > 0 && (
-            <button
-              onClick={clearCostTimeline}
-              className="text-xs text-ink-400 hover:text-ink-600"
-            >
+            <button onClick={clearCostTimeline} className="text-xs text-ink-400 hover:text-ink-600">
               Reset
             </button>
           )}
@@ -118,14 +115,12 @@ export function CostPanel() {
                 <span className="text-3xl font-bold text-ink-800">
                   {formatCurrency(stats.totalCost)}
                 </span>
-                <span className="text-sm text-ink-400">
-                  across {stats.turnCount} turns
-                </span>
+                <span className="text-sm text-ink-400">across {stats.turnCount} turns</span>
               </div>
               {stats.avgRecentCost > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-ink-500">
-                  <TrendingUp size={12} />
-                  ~{formatCurrency(stats.avgRecentCost)} per turn (recent avg)
+                  <TrendingUp size={12} />~{formatCurrency(stats.avgRecentCost)} per turn (recent
+                  avg)
                 </div>
               )}
             </motion.div>
@@ -191,38 +186,37 @@ export function CostPanel() {
 
             {/* Recent entries */}
             <div>
-              <h4 className="mb-2 text-xs font-medium text-ink-500">
-                Recent Activity
-              </h4>
+              <h4 className="mb-2 text-xs font-medium text-ink-500">Recent Activity</h4>
               <div className="space-y-1.5">
-                {costTimeline.slice(-5).reverse().map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-medium text-ink-600">
-                        {entry.model}
+                {costTimeline
+                  .slice(-5)
+                  .reverse()
+                  .map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-medium text-ink-600">
+                          {entry.model}
+                        </div>
+                        <div className="text-[10px] text-ink-400">
+                          {entry.toolNames.length > 0
+                            ? entry.toolNames.slice(0, 2).join(", ") +
+                              (entry.toolNames.length > 2 ? ` +${entry.toolNames.length - 2}` : "")
+                            : "No tools"}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-ink-400">
-                        {entry.toolNames.length > 0
-                          ? entry.toolNames.slice(0, 2).join(", ") +
-                            (entry.toolNames.length > 2
-                              ? ` +${entry.toolNames.length - 2}`
-                              : "")
-                          : "No tools"}
+                      <div className="text-right">
+                        <div className="text-xs font-medium text-ink-700">
+                          {formatCurrency(entry.cost.total)}
+                        </div>
+                        <div className="text-[10px] text-ink-400">
+                          {formatTokens(entry.inputTokens + entry.outputTokens)} tok
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-medium text-ink-700">
-                        {formatCurrency(entry.cost.total)}
-                      </div>
-                      <div className="text-[10px] text-ink-400">
-                        {formatTokens(entry.inputTokens + entry.outputTokens)} tok
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>

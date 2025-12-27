@@ -6,7 +6,7 @@
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.ink.300') transparent;
+    scrollbar-color: theme("colors.ink.300") transparent;
   }
 
   *::-webkit-scrollbar {
@@ -19,23 +19,23 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: theme('colors.ink.300');
+    background-color: theme("colors.ink.300");
     border-radius: 3px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background-color: theme('colors.ink.400');
+    background-color: theme("colors.ink.400");
   }
 
   /* Selection colors */
   ::selection {
-    background-color: theme('colors.terminal.blue / 20%');
-    color: theme('colors.ink.900');
+    background-color: theme("colors.terminal.blue / 20%");
+    color: theme("colors.ink.900");
   }
 
   /* Focus ring styles */
   :focus-visible {
-    outline: 2px solid theme('colors.terminal.blue');
+    outline: 2px solid theme("colors.terminal.blue");
     outline-offset: 2px;
   }
 
@@ -61,7 +61,11 @@
 
   /* Gradient text */
   .text-gradient {
-    background: linear-gradient(135deg, theme('colors.terminal.blue'), theme('colors.terminal.purple'));
+    background: linear-gradient(
+      135deg,
+      theme("colors.terminal.blue"),
+      theme("colors.terminal.purple")
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -75,7 +79,7 @@
 
   /* Subtle noise texture overlay */
   .noise::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -89,7 +93,7 @@
   /* Activity timeline connector */
   .timeline-connector {
     @apply absolute left-[13px] top-9 h-[calc(100%-20px)] w-px;
-    background: linear-gradient(to bottom, theme('colors.ink.200'), transparent);
+    background: linear-gradient(to bottom, theme("colors.ink.200"), transparent);
   }
 
   /* Status badge */

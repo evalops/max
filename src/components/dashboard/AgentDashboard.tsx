@@ -15,15 +15,7 @@ export function AgentDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
-  const {
-    settings,
-    agent,
-    activities,
-    statusTexts,
-    tasks,
-    document,
-    setAgent,
-  } = useAppStore();
+  const { settings, agent, activities, statusTexts, tasks, document, setAgent } = useAppStore();
 
   const { runAgent, stopAgent, isRunning } = useAgent();
 
@@ -83,10 +75,7 @@ export function AgentDashboard() {
 
       {/* Right Panel - Artifacts/ToolRuns/Cost */}
       <AnimatePresence mode="wait">
-        <SidePanel
-          isOpen={isSidePanelOpen}
-          onToggle={() => setIsSidePanelOpen(!isSidePanelOpen)}
-        />
+        <SidePanel isOpen={isSidePanelOpen} onToggle={() => setIsSidePanelOpen(!isSidePanelOpen)} />
       </AnimatePresence>
 
       {/* Settings Panel */}

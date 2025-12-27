@@ -73,11 +73,7 @@ export function ActivityIcon({ type, className, size = 16 }: ActivityIconProps) 
   );
 }
 
-export function StatusDot({
-  status,
-}: {
-  status: "running" | "completed" | "error";
-}) {
+export function StatusDot({ status }: { status: "running" | "completed" | "error" }) {
   return (
     <span
       className={cn("inline-block size-2 rounded-full", {

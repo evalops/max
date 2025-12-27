@@ -1,14 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import {
-  MoreHorizontal,
-  Copy,
-  Settings,
-  Trash2,
-  MessageSquare,
-  ChevronDown,
-} from "lucide-react";
+import { MoreHorizontal, Copy, Settings, Trash2, MessageSquare, ChevronDown } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useExpandable } from "@/hooks";
@@ -91,13 +84,8 @@ export function ActivityPanel({
             <span className="text-xs font-bold text-white">M</span>
           </div>
           <span className="font-display text-sm font-medium text-ink-800">{agentName}</span>
-          <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-500">
-            {version}
-          </span>
-          <button
-            className="ml-1 text-ink-400 hover:text-ink-600"
-            aria-label="Agent options"
-          >
+          <span className="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-500">{version}</span>
+          <button className="ml-1 text-ink-400 hover:text-ink-600" aria-label="Agent options">
             <ChevronDown size={14} />
           </button>
         </div>
@@ -160,7 +148,9 @@ export function ActivityPanel({
             >
               Expand all
             </button>
-            <span className="text-ink-300" aria-hidden="true">·</span>
+            <span className="text-ink-300" aria-hidden="true">
+              ·
+            </span>
             <button
               onClick={() => collapseAll()}
               className="text-xs text-ink-500 hover:text-ink-700"
@@ -187,11 +177,7 @@ export function ActivityPanel({
               {items.map((item, index) => {
                 if (item.type === "status") {
                   return (
-                    <StatusText
-                      key={`status-${index}`}
-                      text={item.data as string}
-                      index={index}
-                    />
+                    <StatusText key={`status-${index}`} text={item.data as string} index={index} />
                   );
                 }
 

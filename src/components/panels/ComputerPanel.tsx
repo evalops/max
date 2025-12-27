@@ -65,9 +65,8 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Calculate budget usage
-  const budgetPercentage = settings.maxBudgetUsd > 0
-    ? (session.totalCost / settings.maxBudgetUsd) * 100
-    : 0;
+  const budgetPercentage =
+    settings.maxBudgetUsd > 0 ? (session.totalCost / settings.maxBudgetUsd) * 100 : 0;
   const isNearBudget = budgetPercentage >= 80;
   const isOverBudget = budgetPercentage >= 100;
 
@@ -128,8 +127,7 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
             )}
           </div>
           <span className="font-mono text-xs text-ink-300">
-            {agent.name} is using{" "}
-            <span className="text-paper-200">{agent.currentActivity}</span>
+            {agent.name} is using <span className="text-paper-200">{agent.currentActivity}</span>
           </span>
         </div>
         {agent.currentFile && (
@@ -150,10 +148,12 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
             <Zap size={12} />
             <span>{session.turnCount} turns</span>
           </div>
-          <div className={cn(
-            "flex items-center gap-1.5 text-xs",
-            isOverBudget ? "text-red-400" : isNearBudget ? "text-terminal-amber" : "text-ink-400"
-          )}>
+          <div
+            className={cn(
+              "flex items-center gap-1.5 text-xs",
+              isOverBudget ? "text-red-400" : isNearBudget ? "text-terminal-amber" : "text-ink-400"
+            )}
+          >
             {isOverBudget ? (
               <AlertTriangle size={12} className="text-red-400" />
             ) : isNearBudget ? (

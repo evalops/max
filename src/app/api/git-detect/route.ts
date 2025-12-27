@@ -57,18 +57,12 @@ export async function POST(request: NextRequest) {
 
     // Get the current branch
     try {
-      const { stdout: branchOutput } = await execAsync(
-        "git branch --show-current",
-        { cwd }
-      );
+      const { stdout: branchOutput } = await execAsync("git branch --show-current", { cwd });
       response.branch = branchOutput.trim() || null;
     } catch {
       // Not on a branch (detached HEAD)
       try {
-        const { stdout: headOutput } = await execAsync(
-          "git rev-parse --short HEAD",
-          { cwd }
-        );
+        const { stdout: headOutput } = await execAsync("git rev-parse --short HEAD", { cwd });
         response.branch = headOutput.trim() || null;
       } catch {
         // Ignore

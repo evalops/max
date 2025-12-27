@@ -96,7 +96,10 @@ function parseDiff(diff: string): DiffFile[] {
     }
 
     // Context line (starts with space or is the line itself)
-    if (line.startsWith(" ") || (!line.startsWith("+") && !line.startsWith("-") && line.length > 0)) {
+    if (
+      line.startsWith(" ") ||
+      (!line.startsWith("+") && !line.startsWith("-") && line.length > 0)
+    ) {
       currentFile.lines.push({
         type: "context",
         content: line.startsWith(" ") ? line.slice(1) : line,
@@ -186,28 +189,22 @@ export function DiffViewer({
   }, [files]);
 
   if (files.length === 0) {
-    return (
-      <div className={`text-zinc-500 text-sm p-4 ${className}`}>
-        No diff to display
-      </div>
-    );
+    return <div className={`p-4 text-sm text-zinc-500 ${className}`}>No diff to display</div>;
   }
 
   return (
-    <div className={`rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden ${className}`}>
+    <div
+      className={`overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700 ${className}`}
+    >
       {/* Stats Header */}
       {showStats && (
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-700 dark:bg-zinc-800">
           <div className="flex items-center gap-4 text-sm">
             <span className="text-zinc-600 dark:text-zinc-400">
               {totalStats.files} file{totalStats.files !== 1 ? "s" : ""} changed
             </span>
-            <span className="text-green-600 dark:text-green-400">
-              +{totalStats.additions}
-            </span>
-            <span className="text-red-600 dark:text-red-400">
-              -{totalStats.deletions}
-            </span>
+            <span className="text-green-600 dark:text-green-400">+{totalStats.additions}</span>
+            <span className="text-red-600 dark:text-red-400">-{totalStats.deletions}</span>
           </div>
           {onToggleCollapse && (
             <button
@@ -233,12 +230,12 @@ export function DiffViewer({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: fileIndex * 0.05 }}
-                className="border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                className="border-b border-zinc-200 last:border-b-0 dark:border-zinc-700"
               >
                 {/* File Header */}
                 <div className={`flex items-center gap-2 px-4 py-2 ${statusInfo.bg}`}>
                   <span>{statusInfo.icon}</span>
-                  <span className="font-mono text-sm text-zinc-800 dark:text-zinc-200 truncate">
+                  <span className="truncate font-mono text-sm text-zinc-800 dark:text-zinc-200">
                     {file.status === "renamed" && file.oldPath !== file.newPath
                       ? `${file.oldPath} → ${file.newPath}`
                       : file.newPath || file.oldPath}
@@ -251,7 +248,7 @@ export function DiffViewer({
                       <span className="text-red-600 dark:text-red-400">-{file.deletions}</span>
                     )}
                     {ext && (
-                      <span className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-zinc-600 dark:text-zinc-400">
+                      <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
                         {ext}
                       </span>
                     )}
@@ -259,7 +256,7 @@ export function DiffViewer({
                 </div>
 
                 {/* Diff Lines */}
-                <div className="font-mono text-xs overflow-x-auto">
+                <div className="overflow-x-auto font-mono text-xs">
                   <table className="w-full border-collapse">
                     <tbody>
                       {file.lines.map((line, lineIndex) => {
@@ -271,12 +268,9 @@ export function DiffViewer({
                           return (
                             <tr
                               key={lineIndex}
-                              className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                              className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                             >
-                              <td
-                                colSpan={3}
-                                className="px-4 py-1 text-xs"
-                              >
+                              <td colSpan={3} className="px-4 py-1 text-xs">
                                 {line.content}
                               </td>
                             </tr>
@@ -287,29 +281,40 @@ export function DiffViewer({
                           line.type === "addition"
                             ? "bg-green-50 dark:bg-green-900/20"
                             : line.type === "deletion"
-                            ? "bg-red-50 dark:bg-red-900/20"
-                            : "";
+                              ? "bg-red-50 dark:bg-red-900/20"
+                              : "";
 
                         const textColor =
                           line.type === "addition"
                             ? "text-green-800 dark:text-green-200"
                             : line.type === "deletion"
-                            ? "text-red-800 dark:text-red-200"
-                            : "text-zinc-700 dark:text-zinc-300";
+                              ? "text-red-800 dark:text-red-200"
+                              : "text-zinc-700 dark:text-zinc-300";
 
                         const lineNumColor = "text-zinc-400 dark:text-zinc-600";
 
                         return (
-                          <tr key={lineIndex} className={`${bgColor} hover:bg-zinc-100 dark:hover:bg-zinc-800/50`}>
-                            <td className={`w-10 px-2 py-0 text-right select-none ${lineNumColor} border-r border-zinc-200 dark:border-zinc-700`}>
+                          <tr
+                            key={lineIndex}
+                            className={`${bgColor} hover:bg-zinc-100 dark:hover:bg-zinc-800/50`}
+                          >
+                            <td
+                              className={`w-10 select-none px-2 py-0 text-right ${lineNumColor} border-r border-zinc-200 dark:border-zinc-700`}
+                            >
                               {line.oldLineNum || ""}
                             </td>
-                            <td className={`w-10 px-2 py-0 text-right select-none ${lineNumColor} border-r border-zinc-200 dark:border-zinc-700`}>
+                            <td
+                              className={`w-10 select-none px-2 py-0 text-right ${lineNumColor} border-r border-zinc-200 dark:border-zinc-700`}
+                            >
                               {line.newLineNum || ""}
                             </td>
-                            <td className={`px-4 py-0 whitespace-pre ${textColor}`}>
-                              <span className="select-none mr-2 text-zinc-400">
-                                {line.type === "addition" ? "+" : line.type === "deletion" ? "-" : " "}
+                            <td className={`whitespace-pre px-4 py-0 ${textColor}`}>
+                              <span className="mr-2 select-none text-zinc-400">
+                                {line.type === "addition"
+                                  ? "+"
+                                  : line.type === "deletion"
+                                    ? "-"
+                                    : " "}
                               </span>
                               {line.content || " "}
                             </td>

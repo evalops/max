@@ -147,10 +147,7 @@ export function restoreRevision(revisionId: string): Artifact | null {
 }
 
 // Search artifacts with fuzzy matching
-export function searchArtifacts(
-  query: string,
-  sessionId?: string
-): Artifact[] {
+export function searchArtifacts(query: string, sessionId?: string): Artifact[] {
   const artifacts = sessionId ? getArtifactsBySession(sessionId) : getArtifacts();
 
   if (!query.trim()) return artifacts;
@@ -183,12 +180,19 @@ export function computeLineDiff(
   let lcsIdx = 0;
 
   while (oldIdx < oldLines.length || newIdx < newLines.length) {
-    if (lcsIdx < lcs.length && oldLines[oldIdx] === lcs[lcsIdx] && newLines[newIdx] === lcs[lcsIdx]) {
+    if (
+      lcsIdx < lcs.length &&
+      oldLines[oldIdx] === lcs[lcsIdx] &&
+      newLines[newIdx] === lcs[lcsIdx]
+    ) {
       result.push({ type: "same", line: lcs[lcsIdx] });
       oldIdx++;
       newIdx++;
       lcsIdx++;
-    } else if (oldIdx < oldLines.length && (lcsIdx >= lcs.length || oldLines[oldIdx] !== lcs[lcsIdx])) {
+    } else if (
+      oldIdx < oldLines.length &&
+      (lcsIdx >= lcs.length || oldLines[oldIdx] !== lcs[lcsIdx])
+    ) {
       result.push({ type: "remove", line: oldLines[oldIdx] });
       oldIdx++;
     } else if (newIdx < newLines.length) {

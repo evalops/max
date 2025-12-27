@@ -103,7 +103,10 @@ export function useGitHub() {
   );
 
   const getRepos = useCallback(
-    async (options?: { type?: "all" | "owner" | "member"; sort?: "updated" | "pushed" | "full_name" }) => {
+    async (options?: {
+      type?: "all" | "owner" | "member";
+      sort?: "updated" | "pushed" | "full_name";
+    }) => {
       setIsLoading(true);
       setError(null);
       try {
@@ -206,9 +209,7 @@ export function useGitHub() {
       setIsLoading(true);
       setError(null);
       try {
-        const pr = await fetchGitHub<GitHubPR>(
-          `/repos/${owner}/${repo}/pulls/${prNumber}`
-        );
+        const pr = await fetchGitHub<GitHubPR>(`/repos/${owner}/${repo}/pulls/${prNumber}`);
         return pr;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch PR");

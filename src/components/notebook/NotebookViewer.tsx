@@ -14,8 +14,6 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
-  Image as ImageIcon,
-  Table,
   Copy,
   Check,
   ChevronsDown,
@@ -200,10 +198,10 @@ function CopyButton({ text, className = "" }: { text: string; className?: string
   return (
     <button
       onClick={handleCopy}
-      className={`p-1.5 rounded transition-colors ${
+      className={`rounded p-1.5 transition-colors ${
         copied
-          ? "text-green-500 bg-green-500/10"
-          : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          ? "bg-green-500/10 text-green-500"
+          : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
       } ${className}`}
       title={copied ? "Copied!" : "Copy code"}
     >
@@ -222,30 +220,20 @@ function ExecutionIndicator({
   executionTime?: string;
 }) {
   const Icon = hasError ? XCircle : executionCount ? CheckCircle2 : Clock;
-  const color = hasError
-    ? "text-red-500"
-    : executionCount
-      ? "text-green-500"
-      : "text-zinc-400";
+  const color = hasError ? "text-red-500" : executionCount ? "text-green-500" : "text-zinc-400";
 
   return (
     <div className="flex items-center gap-1.5">
       <Icon size={12} className={color} />
-      <span className="font-mono text-xs text-zinc-400">
-        [{executionCount ?? " "}]
-      </span>
-      {executionTime && (
-        <span className="text-[10px] text-zinc-400">
-          {executionTime}
-        </span>
-      )}
+      <span className="font-mono text-xs text-zinc-400">[{executionCount ?? " "}]</span>
+      {executionTime && <span className="text-[10px] text-zinc-400">{executionTime}</span>}
     </div>
   );
 }
 
 function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dark" }) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none py-2 prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-pre:bg-zinc-100 dark:prose-pre:bg-zinc-800 prose-code:before:content-none prose-code:after:content-none">
+    <div className="prose prose-sm dark:prose-invert prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-pre:bg-zinc-100 dark:prose-pre:bg-zinc-800 prose-code:before:content-none prose-code:after:content-none max-w-none py-2">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -256,7 +244,10 @@ function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dar
 
             if (isInline) {
               return (
-                <code className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-sm font-mono" {...props}>
+                <code
+                  className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-sm dark:bg-zinc-800"
+                  {...props}
+                >
                   {children}
                 </code>
               );
@@ -279,8 +270,8 @@ function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dar
           },
           table({ children }) {
             return (
-              <div className="overflow-x-auto my-4">
-                <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+              <div className="my-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
                   {children}
                 </table>
               </div>
@@ -288,14 +279,14 @@ function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dar
           },
           th({ children }) {
             return (
-              <th className="px-3 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800">
+              <th className="bg-zinc-50 px-3 py-2 text-left text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                 {children}
               </th>
             );
           },
           td({ children }) {
             return (
-              <td className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800">
+              <td className="border-t border-zinc-100 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                 {children}
               </td>
             );
@@ -306,7 +297,7 @@ function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dar
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400"
               >
                 {children}
               </a>
@@ -317,13 +308,13 @@ function MarkdownCell({ source, theme }: { source: string; theme: "light" | "dar
               <img
                 src={src}
                 alt={alt || ""}
-                className="max-w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-700"
+                className="h-auto max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700"
               />
             );
           },
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-4 italic text-zinc-600 dark:text-zinc-400">
+              <blockquote className="border-l-4 border-zinc-300 pl-4 italic text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">
                 {children}
               </blockquote>
             );
@@ -343,7 +334,7 @@ function CodeCell({
   theme,
   showLineNumbers,
   language,
-  cellIndex,
+  cellIndex: _cellIndex,
 }: {
   source: string;
   executionCount?: number | null;
@@ -358,21 +349,23 @@ function CodeCell({
   const hasError = outputs?.some((o) => o.output_type === "error");
 
   return (
-    <div className={`rounded-lg overflow-hidden border ${
-      hasError
-        ? "border-red-300 dark:border-red-800"
-        : "border-zinc-200 dark:border-zinc-700"
-    }`}>
+    <div
+      className={`overflow-hidden rounded-lg border ${
+        hasError ? "border-red-300 dark:border-red-800" : "border-zinc-200 dark:border-zinc-700"
+      }`}
+    >
       {/* Code input */}
-      <div className="flex group relative">
-        <div className={`w-14 shrink-0 flex flex-col items-center py-2 border-r ${
-          hasError
-            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-            : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
-        }`}>
+      <div className="group relative flex">
+        <div
+          className={`flex w-14 shrink-0 flex-col items-center border-r py-2 ${
+            hasError
+              ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+              : "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
+          }`}
+        >
           <ExecutionIndicator executionCount={executionCount} hasError={hasError} />
         </div>
-        <div className="flex-1 overflow-x-auto relative">
+        <div className="relative flex-1 overflow-x-auto">
           <SyntaxHighlighter
             language={language}
             style={theme === "dark" ? oneDark : oneLight}
@@ -394,22 +387,24 @@ function CodeCell({
           </SyntaxHighlighter>
           <CopyButton
             text={source}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100"
           />
         </div>
       </div>
 
       {/* Outputs */}
       {hasOutputs && (
-        <div className={`border-t ${
-          hasError ? "border-red-200 dark:border-red-800" : "border-zinc-200 dark:border-zinc-700"
-        }`}>
+        <div
+          className={`border-t ${
+            hasError ? "border-red-200 dark:border-red-800" : "border-zinc-200 dark:border-zinc-700"
+          }`}
+        >
           <button
             onClick={() => setIsOutputExpanded(!isOutputExpanded)}
-            className={`w-full flex items-center gap-2 px-3 py-1.5 transition-colors text-xs ${
+            className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
               hasError
-                ? "bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
-                : "bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                : "bg-zinc-50 text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
             }`}
           >
             {isOutputExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -427,7 +422,7 @@ function CodeCell({
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="p-3 space-y-2 max-h-[500px] overflow-auto bg-white dark:bg-zinc-900">
+                <div className="max-h-[500px] space-y-2 overflow-auto bg-white p-3 dark:bg-zinc-900">
                   {outputs.map((output, i) => (
                     <OutputRenderer key={i} output={output} theme={theme} />
                   ))}
@@ -448,10 +443,10 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
 
     return (
       <pre
-        className={`text-xs font-mono p-3 rounded overflow-x-auto whitespace-pre-wrap ${
+        className={`overflow-x-auto whitespace-pre-wrap rounded p-3 font-mono text-xs ${
           isError
-            ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
-            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+            ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
+            : "bg-zinc-50 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
         }`}
       >
         {parseAnsiText(text)}
@@ -461,8 +456,8 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
 
   if (output.output_type === "error") {
     return (
-      <div className="rounded-lg overflow-hidden border border-red-200 dark:border-red-800">
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium text-sm border-b border-red-200 dark:border-red-800">
+      <div className="overflow-hidden rounded-lg border border-red-200 dark:border-red-800">
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-100 px-3 py-2 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
           <AlertCircle size={14} />
           <span>{output.ename}</span>
           {output.evalue && (
@@ -470,7 +465,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
           )}
         </div>
         {output.traceback && output.traceback.length > 0 && (
-          <pre className="text-xs font-mono p-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 overflow-x-auto whitespace-pre-wrap">
+          <pre className="overflow-x-auto whitespace-pre-wrap bg-red-50 p-3 font-mono text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
             {output.traceback.map((line, i) => (
               <div key={i}>{parseAnsiText(line)}</div>
             ))}
@@ -489,7 +484,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
       return (
         <div className="flex flex-col items-center gap-2">
           <div
-            className="max-w-full overflow-auto rounded border border-zinc-200 dark:border-zinc-700 bg-white p-2"
+            className="max-w-full overflow-auto rounded border border-zinc-200 bg-white p-2 dark:border-zinc-700"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
         </div>
@@ -509,7 +504,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
           <img
             src={imgSrc}
             alt="Cell output"
-            className="max-w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm"
+            className="h-auto max-w-full rounded-lg border border-zinc-200 shadow-sm dark:border-zinc-700"
           />
         </div>
       );
@@ -519,11 +514,8 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
     if (data["text/latex"]) {
       const latex = normalizeSource(data["text/latex"]);
       return (
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded overflow-x-auto">
-          <ReactMarkdown
-            remarkPlugins={[remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-          >
+        <div className="overflow-x-auto rounded bg-zinc-50 p-3 dark:bg-zinc-800">
+          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
             {latex}
           </ReactMarkdown>
         </div>
@@ -536,7 +528,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
       return (
         <div className="overflow-x-auto">
           <div
-            className="prose prose-sm dark:prose-invert max-w-none notebook-html-output [&_table]:border-collapse [&_table]:w-full [&_th]:bg-zinc-100 [&_th]:dark:bg-zinc-800 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:border [&_th]:border-zinc-200 [&_th]:dark:border-zinc-700 [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm [&_td]:border [&_td]:border-zinc-200 [&_td]:dark:border-zinc-700"
+            className="prose prose-sm dark:prose-invert notebook-html-output max-w-none [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-zinc-200 [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm [&_td]:dark:border-zinc-700 [&_th]:border [&_th]:border-zinc-200 [&_th]:bg-zinc-100 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:dark:border-zinc-700 [&_th]:dark:bg-zinc-800"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </div>
@@ -547,7 +539,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
     if (data["text/markdown"]) {
       const md = normalizeSource(data["text/markdown"]);
       return (
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded">
+        <div className="rounded bg-zinc-50 p-3 dark:bg-zinc-800">
           <MarkdownCell source={md} theme={theme} />
         </div>
       );
@@ -558,7 +550,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
       const json = data["application/json"];
       const formatted = typeof json === "string" ? json : JSON.stringify(json, null, 2);
       return (
-        <pre className="text-xs font-mono p-3 rounded bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 overflow-x-auto">
+        <pre className="overflow-x-auto rounded bg-zinc-50 p-3 font-mono text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
           <SyntaxHighlighter
             language="json"
             style={theme === "dark" ? oneDark : oneLight}
@@ -574,7 +566,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
     if (data["text/plain"]) {
       const text = normalizeSource(data["text/plain"]);
       return (
-        <pre className="text-xs font-mono p-3 rounded bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap">
+        <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-zinc-50 p-3 font-mono text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
           {parseAnsiText(text)}
         </pre>
       );
@@ -586,7 +578,7 @@ function OutputRenderer({ output, theme }: { output: NotebookOutput; theme: "lig
 
 function RawCell({ source }: { source: string }) {
   return (
-    <pre className="text-xs font-mono p-3 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 overflow-x-auto border border-zinc-200 dark:border-zinc-700">
+    <pre className="overflow-x-auto rounded border border-zinc-200 bg-zinc-100 p-3 font-mono text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
       {source}
     </pre>
   );
@@ -638,8 +630,10 @@ export function NotebookViewer({
 
   if (!notebookData) {
     return (
-      <div className={`flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 ${className}`}>
-        <AlertCircle size={32} className="text-red-500 mb-2" />
+      <div
+        className={`flex flex-col items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-8 dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
+      >
+        <AlertCircle size={32} className="mb-2 text-red-500" />
         <p className="text-sm text-zinc-600 dark:text-zinc-400">Failed to parse notebook</p>
       </div>
     );
@@ -655,20 +649,20 @@ export function NotebookViewer({
 
   return (
     <div
-      className={`bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden ${className}`}
+      className={`overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
       style={maxHeight ? { maxHeight, overflow: "auto" } : undefined}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-zinc-200 dark:border-zinc-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-zinc-800 dark:to-zinc-800">
+      <div className="sticky top-0 z-10 border-b border-zinc-200 bg-gradient-to-r from-orange-50 to-amber-50 dark:border-zinc-700 dark:from-zinc-800 dark:to-zinc-800">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-orange-500">
                 <FileText size={16} className="text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-zinc-800 dark:text-zinc-200 text-sm">
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     {title || "Jupyter Notebook"}
                   </span>
                 </div>
@@ -701,17 +695,17 @@ export function NotebookViewer({
             </div>
 
             {collapsible && (
-              <div className="flex items-center border-l border-zinc-300 dark:border-zinc-600 pl-3">
+              <div className="flex items-center border-l border-zinc-300 pl-3 dark:border-zinc-600">
                 <button
                   onClick={expandAll}
-                  className="p-1.5 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded transition-colors"
+                  className="rounded p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
                   title="Expand all cells"
                 >
                   <ChevronsDown size={14} />
                 </button>
                 <button
                   onClick={collapseAll}
-                  className="p-1.5 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded transition-colors"
+                  className="rounded p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
                   title="Collapse all cells"
                 >
                   <ChevronsUp size={14} />
@@ -723,7 +717,7 @@ export function NotebookViewer({
       </div>
 
       {/* Cells */}
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         {notebookData.cells.map((cell, index) => {
           const source = normalizeSource(cell.source);
           const isCollapsed = collapsedCells.has(index);
@@ -747,7 +741,7 @@ export function NotebookViewer({
                 );
               case "markdown":
                 return (
-                  <div className="pl-4 border-l-2 border-orange-300 dark:border-orange-700">
+                  <div className="border-l-2 border-orange-300 pl-4 dark:border-orange-700">
                     <MarkdownCell source={source} theme={theme} />
                   </div>
                 );
@@ -763,7 +757,7 @@ export function NotebookViewer({
               <div key={cell.id || index} className="group">
                 <button
                   onClick={() => toggleCell(index)}
-                  className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 mb-1 transition-colors"
+                  className="mb-1 flex items-center gap-2 text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
                 >
                   {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                   <span className="flex items-center gap-1.5">
@@ -772,7 +766,7 @@ export function NotebookViewer({
                         <Code size={11} className="text-blue-500" />
                         <span>Code</span>
                         {cell.execution_count && (
-                          <span className="text-zinc-400 font-mono">[{cell.execution_count}]</span>
+                          <span className="font-mono text-zinc-400">[{cell.execution_count}]</span>
                         )}
                       </>
                     ) : cell.cell_type === "markdown" ? (
@@ -788,7 +782,7 @@ export function NotebookViewer({
                     )}
                   </span>
                   {isCollapsed && (
-                    <span className="text-zinc-400 truncate max-w-xs">
+                    <span className="max-w-xs truncate text-zinc-400">
                       {source.split("\n")[0].substring(0, 50)}
                       {source.length > 50 && "..."}
                     </span>
@@ -811,22 +805,16 @@ export function NotebookViewer({
             );
           }
 
-          return (
-            <div key={cell.id || index}>
-              {cellContent()}
-            </div>
-          );
+          return <div key={cell.id || index}>{cellContent()}</div>;
         })}
       </div>
 
       {/* Footer */}
-      <div className="sticky bottom-0 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-2 text-xs text-zinc-500 flex items-center justify-between">
+      <div className="sticky bottom-0 flex items-center justify-between border-t border-zinc-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800">
         <span>
           nbformat {notebookData.nbformat}.{notebookData.nbformat_minor}
         </span>
-        <span>
-          {notebookData.cells.length} cells
-        </span>
+        <span>{notebookData.cells.length} cells</span>
       </div>
     </div>
   );

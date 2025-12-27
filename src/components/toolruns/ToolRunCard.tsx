@@ -79,11 +79,12 @@ export function ToolRunCard({ run, isCompact = false }: ToolRunCardProps) {
   const config = statusConfig[run.status];
   const StatusIcon = config.icon;
 
-  const duration = run.completedAt && run.startedAt
-    ? `${((run.completedAt - run.startedAt) / 1000).toFixed(2)}s`
-    : run.startedAt
-      ? "..."
-      : null;
+  const duration =
+    run.completedAt && run.startedAt
+      ? `${((run.completedAt - run.startedAt) / 1000).toFixed(2)}s`
+      : run.startedAt
+        ? "..."
+        : null;
 
   const handleCopyArgs = async () => {
     if (run.args) {
@@ -122,12 +123,8 @@ export function ToolRunCard({ run, isCompact = false }: ToolRunCardProps) {
           size={14}
           className={cn(config.color, run.status === "running" && "animate-spin")}
         />
-        <span className="flex-1 truncate text-sm font-medium text-ink-700">
-          {run.label}
-        </span>
-        {duration && (
-          <span className="text-xs text-ink-400">{duration}</span>
-        )}
+        <span className="flex-1 truncate text-sm font-medium text-ink-700">{run.label}</span>
+        {duration && <span className="text-xs text-ink-400">{duration}</span>}
       </div>
     );
   }
@@ -178,9 +175,7 @@ export function ToolRunCard({ run, isCompact = false }: ToolRunCardProps) {
           </div>
         )}
 
-        <button
-          className="shrink-0 rounded p-1.5 text-ink-400 transition-all hover:bg-ink-100"
-        >
+        <button className="shrink-0 rounded p-1.5 text-ink-400 transition-all hover:bg-ink-100">
           <ChevronDown
             size={14}
             className={cn("transition-transform", isExpanded && "rotate-180")}

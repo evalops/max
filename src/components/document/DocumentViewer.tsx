@@ -80,9 +80,7 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
               </h2>
             )}
 
-            {line.type === "bold" && (
-              <p className="text-ink-700">{parseBoldText(line.content)}</p>
-            )}
+            {line.type === "bold" && <p className="text-ink-700">{parseBoldText(line.content)}</p>}
 
             {line.type === "bullet" && (
               <div className="flex gap-2 pl-2 text-ink-700">
@@ -91,9 +89,7 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
               </div>
             )}
 
-            {line.type === "normal" && (
-              <p className="text-ink-700">{line.content}</p>
-            )}
+            {line.type === "normal" && <p className="text-ink-700">{line.content}</p>}
           </motion.div>
         ))}
       </div>

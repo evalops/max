@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Package,
-  Wrench,
-  DollarSign,
-  PanelRightClose,
-  PanelRightOpen,
-  Github,
-} from "lucide-react";
+import { Package, Wrench, DollarSign, PanelRightClose, PanelRightOpen, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ArtifactsPanel } from "@/components/artifacts";
 import { ToolRunsPanel } from "@/components/toolruns";
@@ -144,9 +137,7 @@ export function SidePanel({ isOpen, onToggle, defaultTab = "artifacts" }: SidePa
           </div>
 
           {/* Panel content */}
-          <div className="flex-1 overflow-hidden">
-            {renderPanel()}
-          </div>
+          <div className="flex-1 overflow-hidden">{renderPanel()}</div>
         </motion.div>
       )}
     </>

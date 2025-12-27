@@ -16,41 +16,15 @@ const toolToActivityType: Record<string, ActivityType> = {
   Task: "thinking",
   WebSearch: "github",
   WebFetch: "github",
-  // GitHub MCP tools - Read operations
-  github_search_code: "github",
-  github_read_file: "file_read",
-  github_list_files: "file_read",
-  github_list_issues: "github",
-  github_get_issue: "github",
-  github_list_prs: "github",
-  github_get_pr: "github",
-  github_clone_repo: "command",
-  github_repo_info: "github",
-  github_compare: "github",
-  github_actions: "github",
-  github_file_history: "file_read",
-  github_notifications: "github",
-  // GitHub MCP tools - Write operations
-  github_create_issue: "github",
-  github_add_comment: "github",
-  github_create_branch: "github",
-  github_create_pr: "github",
-  github_merge_pr: "github",
-  github_update_issue: "github",
-  github_star: "github",
-  github_fork: "github",
-  // Research MCP tools
-  notebook_create: "file_write",
-  notebook_add_cells: "file_write",
-  notebook_execute: "command",
-  notebook_read: "file_read",
-  notebook_summarize: "thinking",
-  research_arxiv: "thinking",
-  research_arxiv_paper: "thinking",
-  research_arxiv_download: "file_write",
-  research_semantic_scholar: "thinking",
-  python_run: "command",
-  visualize_data: "file_write",
+  // GitHub MCP tools (consolidated: 20 → 4)
+  github_repo: "github",
+  github_issues: "github",
+  github_prs: "github",
+  github_ci: "github",
+  // Research MCP tools (consolidated)
+  notebook: "file_write",
+  research: "thinking",
+  python: "command",
 };
 
 // Infer artifact kind from file extension
@@ -486,7 +460,10 @@ export function useAgent() {
                 // This was likely a Read operation
                 const filename = getFilename(filePath);
                 const ext = filename.split(".").pop()?.toLowerCase() || "text";
-                const langMap: Record<string, "markdown" | "typescript" | "javascript" | "json" | "python" | "text"> = {
+                const langMap: Record<
+                  string,
+                  "markdown" | "typescript" | "javascript" | "json" | "python" | "text"
+                > = {
                   md: "markdown",
                   ts: "typescript",
                   tsx: "typescript",
@@ -523,8 +500,8 @@ export function useAgent() {
           case "result": {
             const success = event.data.success as boolean;
             const duration = event.data.duration as number;
-            const cost = event.data.cost as number || 0;
-            const turns = event.data.turns as number || 0;
+            const cost = (event.data.cost as number) || 0;
+            const turns = (event.data.turns as number) || 0;
 
             // Update task to completed
             updateTask(taskId, {

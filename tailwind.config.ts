@@ -59,8 +59,8 @@ const config: Config = {
         "slide-up": "slideUp 0.4s ease-out forwards",
         "slide-in-right": "slideInRight 0.3s ease-out forwards",
         "pulse-subtle": "pulseSubtle 2s ease-in-out infinite",
-        "expand": "expand 0.3s ease-out forwards",
-        "typing": "typing 1.5s ease-in-out infinite",
+        expand: "expand 0.3s ease-out forwards",
+        typing: "typing 1.5s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
@@ -89,9 +89,9 @@ const config: Config = {
         },
       },
       boxShadow: {
-        "soft": "0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 4px 16px -4px rgba(0, 0, 0, 0.04)",
-        "elevated": "0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.08)",
-        "panel": "0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.06)",
+        soft: "0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 4px 16px -4px rgba(0, 0, 0, 0.04)",
+        elevated: "0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.08)",
+        panel: "0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.06)",
       },
     },
   },

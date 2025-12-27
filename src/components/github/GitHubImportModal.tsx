@@ -21,7 +21,14 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGitHub, type GitHubRepo, type GitHubIssue, type GitHubPR, type GitHubFile, type GitHubBranch } from "@/hooks/useGitHub";
+import {
+  useGitHub,
+  type GitHubRepo,
+  type GitHubIssue,
+  type GitHubPR,
+  type GitHubFile,
+  type GitHubBranch,
+} from "@/hooks/useGitHub";
 
 interface GitHubImportModalProps {
   isOpen: boolean;
@@ -278,7 +285,9 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
       if (file?.content) {
         const ext = path.split(".").pop() || "";
         const lang = extToLang[ext] || ext;
-        contents.push(`**${path}**\n\`\`\`${lang}\n${file.content.substring(0, 5000)}${file.content.length > 5000 ? "\n... (truncated)" : ""}\n\`\`\``);
+        contents.push(
+          `**${path}**\n\`\`\`${lang}\n${file.content.substring(0, 5000)}${file.content.length > 5000 ? "\n... (truncated)" : ""}\n\`\`\``
+        );
       }
     }
 
@@ -348,7 +357,11 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
   const getFileIcon = (file: GitHubFile) => {
     if (file.type === "dir") return <Folder size={16} className="text-terminal-blue" />;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "c", "cpp", "h"].includes(ext || "")) {
+    if (
+      ["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "c", "cpp", "h"].includes(
+        ext || ""
+      )
+    ) {
       return <FileCode size={16} className="text-terminal-green" />;
     }
     return <File size={16} className="text-ink-400" />;
@@ -429,7 +442,10 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                   <>
                     <div className="mb-4 flex gap-2">
                       <div className="relative flex-1">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                        <Search
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+                        />
                         <input
                           type="text"
                           value={searchQuery}
@@ -469,14 +485,18 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                                 )}
                               </div>
                               {repo.description && (
-                                <p className="mt-1 truncate text-sm text-ink-500">{repo.description}</p>
+                                <p className="mt-1 truncate text-sm text-ink-500">
+                                  {repo.description}
+                                </p>
                               )}
                             </div>
                             <ChevronRight size={16} className="shrink-0 text-ink-400" />
                           </button>
                         ))}
                         {repos.length === 0 && !isLoading && (
-                          <p className="py-8 text-center text-sm text-ink-400">No repositories found</p>
+                          <p className="py-8 text-center text-sm text-ink-400">
+                            No repositories found
+                          </p>
                         )}
                       </div>
                     )}
@@ -527,7 +547,9 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                             <FolderOpen size={20} className="text-terminal-blue" />
                             <div>
                               <span className="font-medium text-ink-700">Browse Files</span>
-                              <p className="text-sm text-ink-500">Import code files from this repository</p>
+                              <p className="text-sm text-ink-500">
+                                Import code files from this repository
+                              </p>
                             </div>
                           </div>
                           <ChevronRight size={16} className="text-ink-400" />
@@ -613,7 +635,12 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                               const newPath = currentPath.slice(0, i + 1);
                               const [owner, name] = selectedRepo.full_name.split("/");
                               setCurrentPath(newPath);
-                              const contents = await getDirectoryContents(owner, name, newPath.join("/"), selectedBranch);
+                              const contents = await getDirectoryContents(
+                                owner,
+                                name,
+                                newPath.join("/"),
+                                selectedBranch
+                              );
                               const sorted = [...contents].sort((a, b) => {
                                 if (a.type === b.type) return a.name.localeCompare(b.name);
                                 return a.type === "dir" ? -1 : 1;
@@ -682,7 +709,11 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                               )}
                               {file.type === "dir" && <div className="size-5" />}
                               <button
-                                onClick={() => file.type === "dir" ? handleNavigateToDir(file) : handleSelectFile(file)}
+                                onClick={() =>
+                                  file.type === "dir"
+                                    ? handleNavigateToDir(file)
+                                    : handleSelectFile(file)
+                                }
                                 className="flex flex-1 items-center gap-2 text-left"
                               >
                                 {getFileIcon(file)}
@@ -751,7 +782,10 @@ ${fileContent.substring(0, 15000)}${fileContent.length > 15000 ? "\n... (truncat
                           <span
                             key={label.name}
                             className="rounded-full px-2 py-0.5 text-xs"
-                            style={{ backgroundColor: `#${label.color}20`, color: `#${label.color}` }}
+                            style={{
+                              backgroundColor: `#${label.color}20`,
+                              color: `#${label.color}`,
+                            }}
                           >
                             {label.name}
                           </span>

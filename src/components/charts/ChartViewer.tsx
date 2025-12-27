@@ -128,7 +128,7 @@ export function ChartViewer({
   if (!data || data.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center p-8 ${className}`}>
-        <ChartIcon size={32} className="text-zinc-400 mb-2" />
+        <ChartIcon size={32} className="mb-2 text-zinc-400" />
         <p className="text-sm text-zinc-500">No data to display</p>
       </div>
     );
@@ -199,12 +199,7 @@ export function ChartViewer({
             />
             {showLegend && <Legend wrapperStyle={{ fontSize: "12px" }} />}
             {yKeys.map((key, i) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                fill={colors[i % colors.length]}
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar key={key} dataKey={key} fill={colors[i % colors.length]} radius={[4, 4, 0, 0]} />
             ))}
           </BarChart>
         );
@@ -262,10 +257,7 @@ export function ChartViewer({
               labelLine={{ stroke: axisColor }}
             >
               {data.map((_, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={PIE_COLORS[index % PIE_COLORS.length]}
-                />
+                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip
@@ -310,11 +302,7 @@ export function ChartViewer({
               cursor={{ strokeDasharray: "3 3" }}
             />
             {showLegend && <Legend wrapperStyle={{ fontSize: "12px" }} />}
-            <Scatter
-              name={yKeys[0]}
-              data={data}
-              fill={colors[0]}
-            />
+            <Scatter name={yKeys[0]} data={data} fill={colors[0]} />
           </ScatterChart>
         );
 
@@ -324,14 +312,14 @@ export function ChartViewer({
   };
 
   return (
-    <div className={`bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 ${className}`}>
+    <div
+      className={`rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
+    >
       {/* Header */}
       {title && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
           <ChartIcon size={16} className="text-blue-500" />
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {title}
-          </span>
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
         </div>
       )}
 
@@ -343,7 +331,7 @@ export function ChartViewer({
       </div>
 
       {/* Footer with data summary */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500">
+      <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-2 text-xs text-zinc-500 dark:border-zinc-700">
         <span>{data.length} data points</span>
         <span className="capitalize">{type} chart</span>
       </div>

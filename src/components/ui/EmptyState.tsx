@@ -15,21 +15,12 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  action,
-  className,
-}: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "flex flex-col items-center justify-center px-6 py-12 text-center",
-        className
-      )}
+      className={cn("flex flex-col items-center justify-center px-6 py-12 text-center", className)}
     >
       <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-ink-100">
         <Icon size={28} className="text-ink-400" strokeWidth={1.5} />

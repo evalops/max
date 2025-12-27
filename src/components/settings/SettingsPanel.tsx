@@ -2,18 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Settings,
-  X,
-  Eye,
-  EyeOff,
-  Zap,
-  Palette,
-  Sliders,
-  Check,
-  Github,
-  Mic,
-} from "lucide-react";
+import { Settings, X, Eye, EyeOff, Zap, Palette, Sliders, Check, Github, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore, type ThemeMode } from "@/store";
 
@@ -117,9 +106,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                 <div className="space-y-6">
                   {/* API Key */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-ink-700">
-                      Anthropic API Key
-                    </label>
+                    <label className="text-sm font-medium text-ink-700">Anthropic API Key</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? "text" : "password"}
@@ -223,9 +210,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                             <p
                               className={cn(
                                 "font-medium",
-                                settings.model === model.id
-                                  ? "text-terminal-blue"
-                                  : "text-ink-700"
+                                settings.model === model.id ? "text-terminal-blue" : "text-ink-700"
                               )}
                             >
                               {model.name}
@@ -273,9 +258,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       max="50"
                       step="0.5"
                       value={settings.maxBudgetUsd}
-                      onChange={(e) =>
-                        updateSettings({ maxBudgetUsd: parseFloat(e.target.value) })
-                      }
+                      onChange={(e) => updateSettings({ maxBudgetUsd: parseFloat(e.target.value) })}
                       className="w-full accent-terminal-blue"
                     />
                     <p className="text-xs text-ink-400">Maximum spend per task in USD</p>
@@ -333,9 +316,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
 
             {/* Footer */}
             <div className="border-t border-ink-100 p-4">
-              <p className="text-center text-xs text-ink-400">
-                Max Agent Dashboard v0.1.0
-              </p>
+              <p className="text-center text-xs text-ink-400">Max Agent Dashboard v0.1.0</p>
             </div>
           </motion.div>
         </>
