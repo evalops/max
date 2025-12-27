@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Monitor,
@@ -7,12 +8,20 @@ import {
   Maximize2,
   X,
   FileEdit,
+  FileText,
+  FilePlus,
   Terminal,
   Globe,
   FolderOpen,
   DollarSign,
   Clock,
   Zap,
+  Search,
+  Code,
+  Link,
+  Play,
+  Brain,
+  Loader,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store";
@@ -29,6 +38,21 @@ interface ComputerPanelProps {
 }
 
 const activityIcons: Record<string, typeof FileEdit> = {
+  // Tool-based activities
+  "Reading file": FileText,
+  "Creating file": FilePlus,
+  "Editing file": FileEdit,
+  "Executing command": Terminal,
+  "Searching files": Search,
+  "Searching code": Code,
+  "Searching web": Globe,
+  "Fetching URL": Link,
+  "Running task": Play,
+  // State-based activities
+  Thinking: Brain,
+  Initializing: Loader,
+  Idle: Monitor,
+  // Legacy mappings
   Editor: FileEdit,
   Terminal: Terminal,
   Browser: Globe,
@@ -37,6 +61,23 @@ const activityIcons: Record<string, typeof FileEdit> = {
 
 export function ComputerPanel({ agent, document, tasks, className }: ComputerPanelProps) {
   const { session } = useAppStore();
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Update elapsed time every second when session is running
+  useEffect(() => {
+    if (!session.startTime || !session.isRunning) {
+      return;
+    }
+
+    // Set initial elapsed time
+    setElapsedTime(Math.floor((Date.now() - session.startTime) / 1000));
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - session.startTime!) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [session.startTime, session.isRunning]);
 
   const ActivityIcon = activityIcons[agent.currentActivity] || FileEdit;
 
@@ -94,11 +135,7 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
         <div className="flex shrink-0 items-center gap-4 border-b border-ink-700 bg-ink-800 px-4 py-2">
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Clock size={12} />
-            <span>
-              {session.startTime
-                ? `${Math.floor((Date.now() - session.startTime) / 1000)}s`
-                : "--"}
-            </span>
+            <span>{elapsedTime > 0 ? `${elapsedTime}s` : "--"}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Zap size={12} />

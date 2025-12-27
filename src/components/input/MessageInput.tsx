@@ -128,10 +128,11 @@ export function MessageInput({
             : "border-paper-400 focus-within:border-ink-300 focus-within:shadow-elevated"
         )}
       >
-        {/* Attachment button */}
+        {/* Attachment button - coming soon */}
         <button
-          className="shrink-0 rounded-md p-1 text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-600"
-          title="Attach file"
+          disabled
+          className="shrink-0 cursor-not-allowed rounded-md p-1 text-ink-300 opacity-50"
+          title="Attach file (coming soon)"
         >
           <Paperclip size={18} />
         </button>
@@ -166,18 +167,20 @@ export function MessageInput({
             </div>
           )}
 
-          {/* GitHub button */}
+          {/* GitHub button - coming soon */}
           <button
-            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-600"
-            title="Import from GitHub"
+            disabled
+            className="cursor-not-allowed rounded-md p-1.5 text-ink-300 opacity-50"
+            title="Import from GitHub (coming soon)"
           >
             <Github size={18} />
           </button>
 
-          {/* Microphone button */}
+          {/* Microphone button - coming soon */}
           <button
-            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-600"
-            title="Voice input"
+            disabled
+            className="cursor-not-allowed rounded-md p-1.5 text-ink-300 opacity-50"
+            title="Voice input (coming soon)"
           >
             <Mic size={18} />
           </button>

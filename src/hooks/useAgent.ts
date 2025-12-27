@@ -127,6 +127,7 @@ export function useAgent() {
     resetSession,
     addActivity,
     updateActivity,
+    addStatusText,
     addTask,
     updateTask,
     setAgent,
@@ -143,6 +144,18 @@ export function useAgent() {
 
   const runAgent = useCallback(
     async (prompt: string) => {
+      // Check budget before starting
+      if (session.totalCost >= settings.maxBudgetUsd) {
+        addActivity({
+          type: "error",
+          title: "Budget exceeded",
+          description: `Session cost ($${session.totalCost.toFixed(4)}) has exceeded your max budget ($${settings.maxBudgetUsd.toFixed(2)}). Increase your budget in settings to continue.`,
+          timestamp: new Date(),
+          status: "error",
+        });
+        return;
+      }
+
       // Abort any existing request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -536,9 +549,18 @@ export function useAgent() {
             });
             break;
 
-          case "status":
-            // Handle status updates
+          case "status": {
+            // Add status text after the most recent activity
+            const text = event.data.text as string;
+            if (text) {
+              // Get the most recent activity ID
+              const recentActivityId = [...currentActivityIds.values()].pop();
+              if (recentActivityId) {
+                addStatusText(recentActivityId, text.substring(0, 200));
+              }
+            }
             break;
+          }
         }
       }
     },
@@ -548,6 +570,7 @@ export function useAgent() {
       setSession,
       addActivity,
       updateActivity,
+      addStatusText,
       addTask,
       updateTask,
       setAgent,

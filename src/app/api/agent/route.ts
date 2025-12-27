@@ -104,6 +104,13 @@ export async function POST(request: NextRequest) {
           }
 
           if (message.type === "assistant") {
+            // Send thinking event when assistant starts processing
+            sendEvent({
+              type: "thinking",
+              data: { status: "processing" },
+              timestamp: new Date().toISOString(),
+            });
+
             // Parse the message content to extract tool uses
             const content = message.message?.content;
             if (Array.isArray(content)) {
@@ -122,6 +129,19 @@ export async function POST(request: NextRequest) {
                   sendEvent({
                     type: "message",
                     data: { text: block.text },
+                    timestamp: new Date().toISOString(),
+                  });
+                  // Send status event with the text as a status update
+                  sendEvent({
+                    type: "status",
+                    data: { text: block.text },
+                    timestamp: new Date().toISOString(),
+                  });
+                } else if (block.type === "thinking") {
+                  // Handle extended thinking blocks if enabled
+                  sendEvent({
+                    type: "thinking",
+                    data: { thinking: block.thinking },
                     timestamp: new Date().toISOString(),
                   });
                 }
