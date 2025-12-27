@@ -11,6 +11,12 @@ import {
   delay,
   parseMarkdownLine,
   getStaggerDelay,
+  formatFileSize,
+  debounce,
+  throttle,
+  clamp,
+  range,
+  safeJsonParse,
 } from "./utils";
 
 describe("utils", () => {
@@ -270,6 +276,103 @@ describe("utils", () => {
     it("should use custom base delay", () => {
       expect(getStaggerDelay(1, 100)).toBe(100);
       expect(getStaggerDelay(3, 25)).toBe(75);
+    });
+  });
+
+  describe("formatFileSize", () => {
+    it("should format bytes", () => {
+      expect(formatFileSize(500)).toBe("500 B");
+    });
+
+    it("should format kilobytes", () => {
+      expect(formatFileSize(1024)).toBe("1.0 KB");
+      expect(formatFileSize(1536)).toBe("1.5 KB");
+    });
+
+    it("should format megabytes", () => {
+      expect(formatFileSize(1048576)).toBe("1.0 MB");
+      expect(formatFileSize(1572864)).toBe("1.5 MB");
+    });
+
+    it("should format gigabytes", () => {
+      expect(formatFileSize(1073741824)).toBe("1.0 GB");
+    });
+  });
+
+  describe("debounce", () => {
+    it("should delay function execution", async () => {
+      vi.useFakeTimers();
+      const fn = vi.fn();
+      const debounced = debounce(fn, 100);
+
+      debounced();
+      expect(fn).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(50);
+      debounced();
+      expect(fn).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe("throttle", () => {
+    it("should limit function calls", () => {
+      const fn = vi.fn();
+      const throttled = throttle(fn, 100);
+
+      // First call should go through
+      throttled();
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      // Second immediate call should be ignored
+      throttled();
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("clamp", () => {
+    it("should return value within range", () => {
+      expect(clamp(5, 0, 10)).toBe(5);
+    });
+
+    it("should clamp to minimum", () => {
+      expect(clamp(-5, 0, 10)).toBe(0);
+    });
+
+    it("should clamp to maximum", () => {
+      expect(clamp(15, 0, 10)).toBe(10);
+    });
+  });
+
+  describe("range", () => {
+    it("should create a range of numbers", () => {
+      expect(range(0, 5)).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    it("should respect step", () => {
+      expect(range(0, 10, 2)).toEqual([0, 2, 4, 6, 8]);
+    });
+
+    it("should handle start other than 0", () => {
+      expect(range(5, 10)).toEqual([5, 6, 7, 8, 9]);
+    });
+  });
+
+  describe("safeJsonParse", () => {
+    it("should parse valid JSON", () => {
+      expect(safeJsonParse('{"key": "value"}', {})).toEqual({ key: "value" });
+    });
+
+    it("should return fallback for invalid JSON", () => {
+      expect(safeJsonParse("invalid", { default: true })).toEqual({ default: true });
+    });
+
+    it("should return fallback for empty string", () => {
+      expect(safeJsonParse("", [])).toEqual([]);
     });
   });
 });

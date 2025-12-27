@@ -2,16 +2,38 @@
  * Tests for Research MCP Server
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import fs from "fs/promises";
+
+// Create mock functions
+const mockMkdir = vi.fn().mockResolvedValue(undefined);
+const mockWriteFile = vi.fn().mockResolvedValue(undefined);
+const mockReadFile = vi.fn().mockResolvedValue("");
+const mockReaddir = vi.fn().mockResolvedValue([]);
+const mockStat = vi.fn().mockResolvedValue({ isFile: () => true });
 
 // Mock modules before importing
-vi.mock("fs/promises");
+vi.mock("fs/promises", () => ({
+  default: {
+    mkdir: mockMkdir,
+    writeFile: mockWriteFile,
+    readFile: mockReadFile,
+    readdir: mockReaddir,
+    stat: mockStat,
+  },
+  mkdir: mockMkdir,
+  writeFile: mockWriteFile,
+  readFile: mockReadFile,
+  readdir: mockReaddir,
+  stat: mockStat,
+}));
 vi.mock("child_process", () => ({
   exec: vi.fn(),
 }));
 vi.mock("util", () => ({
   promisify: vi.fn(() => vi.fn()),
 }));
+
+// Import fs after mocking
+import fs from "fs/promises";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -52,8 +74,10 @@ vi.mock("./mcp-utils", () => ({
 describe("research-mcp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
-    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    // Reset mocks
+    mockMkdir.mockResolvedValue(undefined);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockReadFile.mockResolvedValue("");
   });
 
   afterEach(() => {
