@@ -12,13 +12,6 @@ import type {
   SessionCostEntry,
 } from "@/types";
 import {
-  mockAgent,
-  mockDocument,
-  mockTasks,
-  mockActivities,
-  mockStatusTexts,
-} from "@/data/mockData";
-import {
   saveArtifact,
   getArtifactsBySession,
   deleteArtifact,
@@ -26,11 +19,9 @@ import {
   generateId,
 } from "@/lib/storage";
 
-export type DataMode = "mock" | "live";
 export type ThemeMode = "light" | "dark" | "system";
 
 interface Settings {
-  dataMode: DataMode;
   theme: ThemeMode;
   apiKey: string;
   model: string;
@@ -111,13 +102,17 @@ interface AppState {
   getTotalCost: () => number;
   clearCostTimeline: () => void;
 
-  // Mock data helpers
-  loadMockData: () => void;
+  // Data helpers
   clearAllData: () => void;
 }
 
+const defaultAgent: AgentState = {
+  name: "Max",
+  currentActivity: "Idle",
+  isThinking: false,
+};
+
 const defaultSettings: Settings = {
-  dataMode: "mock",
   theme: "light",
   apiKey: "",
   model: "claude-sonnet-4-20250514",
@@ -158,7 +153,7 @@ export const useAppStore = create<AppState>()(
         })),
 
       // Agent State
-      agent: mockAgent,
+      agent: defaultAgent,
       setAgent: (agentUpdates) =>
         set((state) => ({
           agent: { ...state.agent, ...agentUpdates },
@@ -356,15 +351,7 @@ export const useAppStore = create<AppState>()(
       },
       clearCostTimeline: () => set({ costTimeline: [] }),
 
-      // Mock data helpers
-      loadMockData: () =>
-        set({
-          agent: mockAgent,
-          activities: mockActivities,
-          statusTexts: mockStatusTexts,
-          tasks: mockTasks,
-          document: mockDocument,
-        }),
+      // Data helpers
       clearAllData: () =>
         set({
           activities: [],

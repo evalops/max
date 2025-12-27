@@ -7,7 +7,6 @@ import {
   Mic,
   Square,
   Zap,
-  Database,
   Send,
   Paperclip,
   Command,
@@ -20,7 +19,6 @@ interface MessageInputProps {
   onSend: (message: string) => void;
   onStop?: () => void;
   isProcessing?: boolean;
-  isLiveMode?: boolean;
   hasApiKey?: boolean;
   className?: string;
 }
@@ -37,7 +35,6 @@ export function MessageInput({
   onSend,
   onStop,
   isProcessing = false,
-  isLiveMode = false,
   hasApiKey = false,
   className,
 }: MessageInputProps) {
@@ -93,7 +90,7 @@ export function MessageInput({
     inputRef.current?.focus();
   };
 
-  const canSend = message.trim() && (!isLiveMode || hasApiKey);
+  const canSend = message.trim() && hasApiKey;
 
   return (
     <div className={cn("border-t border-paper-400/50 bg-paper-100 p-4", className)}>
@@ -149,7 +146,7 @@ export function MessageInput({
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={
-            isLiveMode && !hasApiKey
+            !hasApiKey
               ? "Add API key in settings to start..."
               : `Message ${agentName}...`
           }
@@ -208,7 +205,7 @@ export function MessageInput({
                   ? "bg-ink-900 text-white hover:bg-ink-700"
                   : "bg-ink-200 text-ink-400"
               )}
-              title={canSend ? "Send (Enter)" : isLiveMode && !hasApiKey ? "API key required" : "Type a message"}
+              title={canSend ? "Send (Enter)" : !hasApiKey ? "API key required" : "Type a message"}
             >
               <Send size={14} />
             </motion.button>
@@ -219,24 +216,17 @@ export function MessageInput({
       {/* Mode indicator and keyboard hint */}
       <div className="mt-3 flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
-          {isLiveMode ? (
-            <span
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                hasApiKey
-                  ? "bg-terminal-green/10 text-terminal-green"
-                  : "bg-terminal-amber/10 text-terminal-amber"
-              )}
-            >
-              <Zap size={12} />
-              {hasApiKey ? "Live" : "Live (No API key)"}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 rounded-full bg-terminal-blue/10 px-2.5 py-1 text-xs font-medium text-terminal-blue">
-              <Database size={12} />
-              Demo Mode
-            </span>
-          )}
+          <span
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+              hasApiKey
+                ? "bg-terminal-green/10 text-terminal-green"
+                : "bg-terminal-amber/10 text-terminal-amber"
+            )}
+          >
+            <Zap size={12} />
+            {hasApiKey ? "Ready" : "API key required"}
+          </span>
         </div>
 
         {/* Enter hint */}

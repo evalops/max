@@ -36,7 +36,7 @@ const activityIcons: Record<string, typeof FileEdit> = {
 };
 
 export function ComputerPanel({ agent, document, tasks, className }: ComputerPanelProps) {
-  const { session, settings } = useAppStore();
+  const { session } = useAppStore();
 
   const ActivityIcon = activityIcons[agent.currentActivity] || FileEdit;
 
@@ -89,8 +89,8 @@ export function ComputerPanel({ agent, document, tasks, className }: ComputerPan
         )}
       </div>
 
-      {/* Session stats bar (when live mode) */}
-      {settings.dataMode === "live" && session.sessionId && (
+      {/* Session stats bar */}
+      {session.sessionId && (
         <div className="flex shrink-0 items-center gap-4 border-b border-ink-700 bg-ink-800 px-4 py-2">
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Clock size={12} />

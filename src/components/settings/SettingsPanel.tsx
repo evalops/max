@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   Zap,
-  Database,
   Palette,
   Sliders,
   Check,
@@ -32,7 +31,7 @@ const models = [
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [showApiKey, setShowApiKey] = useState(false);
-  const { settings, updateSettings, loadMockData, clearAllData } = useAppStore();
+  const { settings, updateSettings } = useAppStore();
 
   const tabs = [
     { id: "general" as const, label: "General", icon: Sliders },
@@ -98,99 +97,30 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <div className="flex-1 overflow-y-auto p-6">
               {activeTab === "general" && (
                 <div className="space-y-6">
-                  {/* Data Mode */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-ink-700">Data Mode</label>
-                    <div className="grid grid-cols-2 gap-3">
+                  {/* API Key */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-ink-700">
+                      Anthropic API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? "text" : "password"}
+                        value={settings.apiKey}
+                        onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                        placeholder="sk-ant-..."
+                        className="w-full rounded-lg border border-ink-200 px-4 py-2.5 pr-10 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-terminal-blue focus:outline-none focus:ring-2 focus:ring-terminal-blue/20"
+                      />
                       <button
-                        onClick={() => {
-                          updateSettings({ dataMode: "mock" });
-                          loadMockData();
-                        }}
-                        className={cn(
-                          "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
-                          settings.dataMode === "mock"
-                            ? "border-terminal-blue bg-terminal-blue/5"
-                            : "border-ink-200 hover:border-ink-300"
-                        )}
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
                       >
-                        <Database
-                          size={24}
-                          className={
-                            settings.dataMode === "mock"
-                              ? "text-terminal-blue"
-                              : "text-ink-400"
-                          }
-                        />
-                        <span
-                          className={cn(
-                            "text-sm font-medium",
-                            settings.dataMode === "mock" ? "text-terminal-blue" : "text-ink-600"
-                          )}
-                        >
-                          Mock Data
-                        </span>
-                        <span className="text-xs text-ink-400">Demo mode</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          updateSettings({ dataMode: "live" });
-                          clearAllData();
-                        }}
-                        className={cn(
-                          "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
-                          settings.dataMode === "live"
-                            ? "border-terminal-green bg-terminal-green/5"
-                            : "border-ink-200 hover:border-ink-300"
-                        )}
-                      >
-                        <Zap
-                          size={24}
-                          className={
-                            settings.dataMode === "live"
-                              ? "text-terminal-green"
-                              : "text-ink-400"
-                          }
-                        />
-                        <span
-                          className={cn(
-                            "text-sm font-medium",
-                            settings.dataMode === "live" ? "text-terminal-green" : "text-ink-600"
-                          )}
-                        >
-                          Live Agent
-                        </span>
-                        <span className="text-xs text-ink-400">Claude SDK</span>
+                        {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    <p className="text-xs text-ink-400">
+                      Your API key is stored locally and never sent to our servers.
+                    </p>
                   </div>
-
-                  {/* API Key (only in live mode) */}
-                  {settings.dataMode === "live" && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-ink-700">
-                        Anthropic API Key
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showApiKey ? "text" : "password"}
-                          value={settings.apiKey}
-                          onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                          placeholder="sk-ant-..."
-                          className="w-full rounded-lg border border-ink-200 px-4 py-2.5 pr-10 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-terminal-blue focus:outline-none focus:ring-2 focus:ring-terminal-blue/20"
-                        />
-                        <button
-                          onClick={() => setShowApiKey(!showApiKey)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
-                        >
-                          {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <p className="text-xs text-ink-400">
-                        Your API key is stored locally and never sent to our servers.
-                      </p>
-                    </div>
-                  )}
 
                   {/* Working Directory */}
                   <div className="space-y-2">
