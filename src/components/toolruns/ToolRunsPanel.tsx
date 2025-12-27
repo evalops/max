@@ -39,7 +39,9 @@ export function ToolRunsPanel() {
     toolRuns,
   } = useAppStore();
 
-  const filteredRuns = useMemo(() => getFilteredToolRuns(), [getFilteredToolRuns]);
+  // Include toolRuns and toolRunFilter as deps for proper cache invalidation
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const filteredRuns = useMemo(() => getFilteredToolRuns(), [toolRuns, toolRunFilter]);
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
