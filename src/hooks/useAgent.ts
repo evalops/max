@@ -3,7 +3,7 @@
 import { useCallback, useRef } from "react";
 import { useAppStore } from "@/store";
 import type { AgentEvent, AgentRequest } from "@/app/api/agent/route";
-import type { ActivityType } from "@/types";
+import type { ActivityType, ArtifactKind } from "@/types";
 
 // Map tool names to activity types
 const toolToActivityType: Record<string, ActivityType> = {
@@ -18,6 +18,105 @@ const toolToActivityType: Record<string, ActivityType> = {
   WebFetch: "github",
 };
 
+// Infer artifact kind from file extension
+function getArtifactKind(filename: string): ArtifactKind {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const kindMap: Record<string, ArtifactKind> = {
+    md: "markdown",
+    markdown: "markdown",
+    html: "html",
+    htm: "html",
+    json: "json",
+    ts: "code",
+    tsx: "code",
+    js: "code",
+    jsx: "code",
+    py: "code",
+    rb: "code",
+    go: "code",
+    rs: "code",
+    java: "code",
+    c: "code",
+    cpp: "code",
+    h: "code",
+    css: "code",
+    scss: "code",
+    yaml: "code",
+    yml: "code",
+    toml: "code",
+    sh: "code",
+    bash: "code",
+    png: "image",
+    jpg: "image",
+    jpeg: "image",
+    gif: "image",
+    svg: "image",
+    webp: "image",
+  };
+  return kindMap[ext] || "text";
+}
+
+// Get MIME type from file extension
+function getMimeType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const mimeMap: Record<string, string> = {
+    md: "text/markdown",
+    markdown: "text/markdown",
+    html: "text/html",
+    htm: "text/html",
+    json: "application/json",
+    ts: "text/typescript",
+    tsx: "text/typescript",
+    js: "text/javascript",
+    jsx: "text/javascript",
+    py: "text/x-python",
+    css: "text/css",
+    txt: "text/plain",
+  };
+  return mimeMap[ext] || "text/plain";
+}
+
+// Get language from file extension
+function getLanguage(filename: string): string | undefined {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const langMap: Record<string, string> = {
+    ts: "typescript",
+    tsx: "typescript",
+    js: "javascript",
+    jsx: "javascript",
+    py: "python",
+    rb: "ruby",
+    go: "go",
+    rs: "rust",
+    java: "java",
+    c: "c",
+    cpp: "cpp",
+    h: "c",
+    css: "css",
+    scss: "scss",
+    html: "html",
+    json: "json",
+    yaml: "yaml",
+    yml: "yaml",
+    md: "markdown",
+    sh: "bash",
+    bash: "bash",
+  };
+  return langMap[ext];
+}
+
+// Extract filename from path
+function getFilename(filepath: string): string {
+  return filepath.split("/").pop() || filepath;
+}
+
+// Extract folder path from full path
+function getFolderPath(filepath: string): string {
+  const parts = filepath.split("/");
+  parts.pop();
+  return parts.join("/") || "/";
+}
+
 export function useAgent() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -31,6 +130,15 @@ export function useAgent() {
     addTask,
     updateTask,
     setAgent,
+    // New: Tool Runs
+    addToolRun,
+    updateToolRun,
+    // New: Artifacts
+    addArtifact,
+    // New: Documents
+    setDocument,
+    // New: Cost
+    addCostEntry,
   } = useAppStore();
 
   const runAgent = useCallback(
@@ -67,6 +175,12 @@ export function useAgent() {
 
       // Track current activity for updates
       const currentActivityIds = new Map<string, string>();
+      // Track tool runs by toolId
+      const toolRunIds = new Map<string, string>();
+      // Track tool inputs for artifact creation
+      const toolInputs = new Map<string, Record<string, unknown>>();
+      // Track tool names for cost tracking
+      const toolNamesUsed: string[] = [];
 
       try {
         const request: AgentRequest = {
@@ -133,6 +247,10 @@ export function useAgent() {
         if ((error as Error).name === "AbortError") {
           // Request was aborted, update task status
           updateTask(taskId, { status: "pending", statusText: "Cancelled" });
+          // Cancel any pending tool runs
+          for (const [, runId] of toolRunIds) {
+            updateToolRun(runId, { status: "cancelled", completedAt: Date.now() });
+          }
         } else {
           // Real error
           addActivity({
@@ -170,6 +288,10 @@ export function useAgent() {
             const toolId = event.data.toolId as string;
             const input = event.data.input as Record<string, unknown>;
 
+            // Store input for later use (artifact creation)
+            toolInputs.set(toolId, input);
+            toolNamesUsed.push(toolName);
+
             // Create activity title based on tool
             let title = `Using ${toolName}`;
             let description = "";
@@ -192,6 +314,15 @@ export function useAgent() {
             } else if (toolName === "Grep" && input.pattern) {
               title = "Searching code";
               description = input.pattern as string;
+            } else if (toolName === "WebSearch" && input.query) {
+              title = "Searching web";
+              description = input.query as string;
+            } else if (toolName === "WebFetch" && input.url) {
+              title = "Fetching URL";
+              description = input.url as string;
+            } else if (toolName === "Task" && input.description) {
+              title = "Running task";
+              description = input.description as string;
             }
 
             const activityId = Math.random().toString(36).substring(2, 9);
@@ -205,6 +336,21 @@ export function useAgent() {
               status: "running",
             });
 
+            // Add tool run
+            const runId = addToolRun({
+              toolCallId: toolId,
+              name: toolName,
+              label: `${title}${description ? `: ${description}` : ""}`,
+              status: "running",
+              startedAt: Date.now(),
+              completedAt: null,
+              progress: 0,
+              args: input,
+              output: null,
+              error: null,
+            });
+            toolRunIds.set(toolId, runId);
+
             setAgent({
               currentActivity: title,
               currentFile: (input.file_path as string) || undefined,
@@ -215,13 +361,101 @@ export function useAgent() {
 
           case "tool_end": {
             const toolId = event.data.toolId as string;
+            const result = event.data.result as string;
+            const isError = event.data.isError as boolean;
+            const input = toolInputs.get(toolId);
+            // toolName lookup removed - not currently used
+
+            // Update activity
             const activityId = currentActivityIds.get(toolId);
             if (activityId) {
               updateActivity(activityId, {
-                status: event.data.isError ? "error" : "completed",
+                status: isError ? "error" : "completed",
               });
               currentActivityIds.delete(toolId);
             }
+
+            // Update tool run
+            const runId = toolRunIds.get(toolId);
+            if (runId) {
+              updateToolRun(runId, {
+                status: isError ? "failed" : "succeeded",
+                completedAt: Date.now(),
+                progress: 100,
+                output: result?.substring(0, 10000) || null, // Limit output size
+                error: isError ? result : null,
+              });
+            }
+
+            // Handle specific tools for extra features
+            if (input) {
+              const filePath = input.file_path as string | undefined;
+
+              // Create artifact for Write tool
+              if (filePath && !isError && input.content) {
+                const filename = getFilename(filePath);
+                addArtifact({
+                  sessionId: session.sessionId || "default",
+                  filename,
+                  title: filename,
+                  content: input.content as string,
+                  kind: getArtifactKind(filename),
+                  mimeType: getMimeType(filename),
+                  language: getLanguage(filename),
+                  folderPath: getFolderPath(filePath),
+                  tags: ["auto-created"],
+                  agentContext: {
+                    intent: "write",
+                    confidence: 1.0,
+                  },
+                });
+              }
+
+              // Create/update artifact for Edit tool
+              if (filePath && !isError && input.new_string) {
+                const filename = getFilename(filePath);
+                // For edits, we track the change
+                addArtifact({
+                  sessionId: session.sessionId || "default",
+                  filename,
+                  title: `Edit: ${filename}`,
+                  content: `Old:\n${input.old_string}\n\nNew:\n${input.new_string}`,
+                  kind: "code",
+                  mimeType: "text/plain",
+                  language: getLanguage(filename),
+                  folderPath: getFolderPath(filePath),
+                  tags: ["edit", "auto-created"],
+                  agentContext: {
+                    intent: "edit",
+                    confidence: 1.0,
+                  },
+                });
+              }
+
+              // Set document for Read results
+              if (filePath && !isError && result && !input.content && !input.new_string) {
+                // This was likely a Read operation
+                const filename = getFilename(filePath);
+                const ext = filename.split(".").pop()?.toLowerCase() || "text";
+                const langMap: Record<string, "markdown" | "typescript" | "javascript" | "json" | "python" | "text"> = {
+                  md: "markdown",
+                  ts: "typescript",
+                  tsx: "typescript",
+                  js: "javascript",
+                  jsx: "javascript",
+                  json: "json",
+                  py: "python",
+                };
+                setDocument({
+                  id: toolId,
+                  filename,
+                  content: result.substring(0, 50000), // Limit content size
+                  language: langMap[ext] || "text",
+                });
+              }
+            }
+
+            toolInputs.delete(toolId);
             break;
           }
 
@@ -234,30 +468,63 @@ export function useAgent() {
             break;
 
           case "message":
-            // Handle text messages - could add to status texts
+            // Handle text messages - could add to a message stream
             break;
 
-          case "result":
+          case "result": {
+            const success = event.data.success as boolean;
+            const duration = event.data.duration as number;
+            const cost = event.data.cost as number || 0;
+            const turns = event.data.turns as number || 0;
+
             // Update task to completed
             updateTask(taskId, {
-              status: event.data.success ? "completed" : "pending",
-              statusText: event.data.success ? undefined : "Failed",
-              duration: `${((event.data.duration as number) / 1000).toFixed(1)}s`,
+              status: success ? "completed" : "pending",
+              statusText: success ? undefined : "Failed",
+              duration: `${(duration / 1000).toFixed(1)}s`,
             });
 
+            // Update session totals
             setSession({
-              totalCost: session.totalCost + (event.data.cost as number || 0),
-              turnCount: session.turnCount + (event.data.turns as number || 0),
+              totalCost: session.totalCost + cost,
+              turnCount: session.turnCount + turns,
+            });
+
+            // Add cost entry with breakdown
+            // Estimate token breakdown based on cost (approximate rates)
+            // Claude Sonnet: $3/MTok input, $15/MTok output
+            // Rough estimate: 70% of cost is output, 30% is input
+            const outputCost = cost * 0.7;
+            const inputCost = cost * 0.3;
+            const estimatedInputTokens = Math.round(inputCost / 0.000003);
+            const estimatedOutputTokens = Math.round(outputCost / 0.000015);
+
+            addCostEntry({
+              turnId: taskId,
+              model: settings.model || "claude-sonnet-4-20250514",
+              toolNames: [...new Set(toolNamesUsed)],
+              inputTokens: estimatedInputTokens,
+              outputTokens: estimatedOutputTokens,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              cost: {
+                input: inputCost,
+                output: outputCost,
+                cacheRead: 0,
+                cacheWrite: 0,
+                total: cost,
+              },
             });
 
             addActivity({
-              type: event.data.success ? "success" : "error",
-              title: event.data.success ? "Task completed" : "Task failed",
+              type: success ? "success" : "error",
+              title: success ? "Task completed" : "Task failed",
               description: event.data.result as string,
               timestamp: new Date(event.timestamp),
               status: "completed",
             });
             break;
+          }
 
           case "error":
             addActivity({
@@ -284,6 +551,11 @@ export function useAgent() {
       addTask,
       updateTask,
       setAgent,
+      addToolRun,
+      updateToolRun,
+      addArtifact,
+      setDocument,
+      addCostEntry,
     ]
   );
 
